@@ -1,1 +1,9 @@
 resolver: lts-13.28
+packages:
+- .
+extra-deps:
+- github: chrisdone/streaming-parsers
+  commit: 09e22ca1c61d9a0f92545191c922b592760c1f5a
+  subdirs:
+    - parsax
+    - reparsec
