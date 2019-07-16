@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TupleSections #-}
@@ -16,23 +17,24 @@ module Casa
   , Widget
   ) where
 
+import           Control.Applicative
 import           Control.Monad
-import           Control.Monad.Primitive
-import qualified Data.Attoparsec.Text as Atto
-import           Data.Bifunctor
+import qualified Data.Attoparsec.ByteString as Atto.B
+import qualified Data.Attoparsec.Text as Atto.T
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as S
 import qualified Data.ByteString.Builder as S
 import           Data.Char
 import           Data.Conduit
+import           Data.Conduit.Attoparsec
 import qualified Data.Conduit.List as CL
+import           Data.Foldable
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HM
 import           Data.Hashable
+import           Data.List.NonEmpty (NonEmpty(..))
+import qualified Data.List.NonEmpty as NE
 import           Data.Maybe
-import qualified Data.Parsax as Parsax
-import qualified Data.Parsax.Json as Parsax.Json
-import           Data.Sequence (Seq)
 import           Data.String
 import           Data.Text (Text)
 import qualified Data.Text as T
@@ -43,7 +45,7 @@ import           Yesod
 -- Constants
 
 maxRequestableKeys :: Int
-maxRequestableKeys = 100
+maxRequestableKeys = 1
 
 --------------------------------------------------------------------------------
 -- Types
@@ -88,21 +90,17 @@ instance PathPiece BlobKey where
     blobKeyParser
   toPathPiece = T.decodeUtf8 . unBlobKey
 
--- | Parse a key for parsax (json/yaml).
-blobKeyValue :: Parsax.ValueParser Text m BlobKey
-blobKeyValue =
-  Parsax.Scalar
-    (\case
-       Parsax.TextScalar text -> first T.pack (blobKeyParser text)
-       _ -> Left "Blob keys should be a string.")
-
 -- | Parse a blob key.
 blobKeyParser :: Text -> Either String BlobKey
 blobKeyParser =
-  Atto.parseOnly
-    (fmap (BlobKey . T.encodeUtf8) (Atto.takeWhile isValidSha256Character))
+  Atto.T.parseOnly
+    (fmap (BlobKey . T.encodeUtf8) (Atto.T.takeWhile isValidSha256Character))
   where
     isValidSha256Character c = isAscii c || isAlphaNum c
+
+-- | Parse a blob key.
+blobKeyParserBS :: Atto.B.Parser BlobKey
+blobKeyParserBS = fmap BlobKey (Atto.B.take 32)
 
 blobKeyToBuilder :: BlobKey -> S.Builder
 blobKeyToBuilder = S.byteString . unBlobKey
@@ -128,10 +126,12 @@ getSingleBlobR blobKey =
 -- | Get a batch of blobs.
 postBatchBlobsR :: Handler TypedContent
 postBatchBlobsR = do
-  keys <- requireParsaxJsonBody (Parsax.Array maxRequestableKeys blobKeyValue)
+  keys <- hashesFromBody
   -- We can later replace this with a call to a database.
   let results =
-        mapMaybe (\key -> fmap (key, ) (HM.lookup key hardCodedKeys)) keys
+        mapMaybe
+          (\key -> fmap (key, ) (HM.lookup key hardCodedKeys))
+          (toList keys)
   -- We return a stream of key+blob pairs in binary format. The client
   -- knows how long the hash should be and how long the blob should be
   -- based on the hash.
@@ -161,24 +161,28 @@ hardCodedKeys =
     ]
 
 --------------------------------------------------------------------------------
--- Web utilities
+-- Input reader
 
-requireParsaxJsonBody ::
-     (MonadHandler m, PrimMonad m)
-  => Parsax.ValueParser Text m a
-  -> m a
-requireParsaxJsonBody valueParser = do
-  (result, _warnings) <- parsaxJsonBody valueParser
-  case result of
-    Left jsonError ->
-      invalidArgs ["JSON parse error: " <> T.pack (show jsonError)]
-    Right a -> pure a
-
-parsaxJsonBody ::
-     (MonadHandler m, PrimMonad m)
-  => Parsax.ValueParser e m a
-  -> m (Either (Parsax.Json.JsonError e) a, Seq Parsax.ParseWarning)
-parsaxJsonBody valueParser = do
-  runConduit
-    (rawRequestBody .|
-     Parsax.Json.parseBytesSink Parsax.defaultConfig valueParser)
+hashesFromBody ::
+     (MonadHandler m)
+  => m (NonEmpty BlobKey)
+hashesFromBody = do
+  do result <-
+       runConduit
+         (rawRequestBody .|
+          sinkParserEither (many1 maxRequestableKeys blobKeyParserBS))
+     case result of
+       Left err ->
+         invalidArgs
+           ["Invalid blob keys, parse error: " <> T.pack (errorMessage err)]
+       Right keys ->
+         case NE.nonEmpty keys of
+           Nothing -> invalidArgs ["No keys provided."]
+           Just nonEmpty -> pure nonEmpty
+  where
+    many1 0 _ = fail "Max keys reached."
+    many1 n m = do
+      v <- fmap Just m <|> fmap (const Nothing) Atto.B.endOfInput
+      case v of
+        Nothing -> pure []
+        Just x -> fmap (x :) (many1 (n - 1) m)

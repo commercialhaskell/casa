@@ -3,39 +3,7 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages:
-- completed:
-    size: 91999
-    subdir: parsax
-    url: https://github.com/chrisdone/streaming-parsers/archive/09e22ca1c61d9a0f92545191c922b592760c1f5a.tar.gz
-    cabal-file:
-      size: 1796
-      sha256: cfa8aa8918233125187b20abd3f37da061911d8a6fbc7d7a50b64c882da0f421
-    name: parsax
-    version: 0.0.0
-    sha256: 2025a5ed77c2b70e3db9fa8aeef8e1122a322233cd72ee03dcd04ecbe727704d
-    pantry-tree:
-      size: 1021
-      sha256: c8b85c8d74ed64349855772fe6510692c268f8248a5e48af67a5474c6842c44c
-  original:
-    subdir: parsax
-    url: https://github.com/chrisdone/streaming-parsers/archive/09e22ca1c61d9a0f92545191c922b592760c1f5a.tar.gz
-- completed:
-    size: 91999
-    subdir: reparsec
-    url: https://github.com/chrisdone/streaming-parsers/archive/09e22ca1c61d9a0f92545191c922b592760c1f5a.tar.gz
-    cabal-file:
-      size: 986
-      sha256: 6eaf66e8f06fc24223a606c269a2757189429dd6cec1c75e9567d91488590ec2
-    name: reparsec
-    version: 0.0.0
-    sha256: 2025a5ed77c2b70e3db9fa8aeef8e1122a322233cd72ee03dcd04ecbe727704d
-    pantry-tree:
-      size: 474
-      sha256: bf22a448fba648ceda8f1d020f701ded5166da9f52de379119700ef1f85423e4
-  original:
-    subdir: reparsec
-    url: https://github.com/chrisdone/streaming-parsers/archive/09e22ca1c61d9a0f92545191c922b592760c1f5a.tar.gz
+packages: []
 snapshots:
 - completed:
     size: 500539
