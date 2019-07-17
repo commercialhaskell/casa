@@ -22,7 +22,7 @@ newtype BlobKey =
   BlobKey
     { unBlobKey :: ByteString
     }
-  deriving (Eq, Ord, Hashable)
+  deriving (Read, Eq, Ord, Hashable)
 
 instance Show BlobKey where
   show (BlobKey key) = show (Hex.encode key)
