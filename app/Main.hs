@@ -3,7 +3,7 @@
 module Main where
 
 import Yesod
-import Casa
+import Casa.Server
 
 main :: IO ()
 main = warpEnv App

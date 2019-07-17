@@ -12,7 +12,7 @@
 
 -- | Casa content-addressable storage archive server.
 
-module Casa
+module Casa.Server
   ( App(App)
   , resourcesApp
   , Widget
