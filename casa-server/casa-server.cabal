@@ -23,6 +23,8 @@ library
     , conduit
     , containers
     , base16-bytestring
+    , casa-types
+    , attoparsec-binary
 
 executable casa-server
   main-is: Main.hs
