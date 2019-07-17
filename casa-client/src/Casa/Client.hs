@@ -3,7 +3,9 @@
 
 -- |
 
-module Casa.Client where
+module Casa.Client
+  ( blobsSource
+  ) where
 
 import           Casa.Types
 import           Control.Monad.Catch
