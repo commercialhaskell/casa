@@ -16,6 +16,7 @@ module Casa.Server
   ( App(App)
   , resourcesApp
   , Widget
+  , hashesFromStream
   ) where
 
 import           Casa.Types
@@ -143,10 +144,7 @@ hashesFromBody ::
      (MonadHandler m)
   => m (NonEmpty (BlobKey, Int))
 hashesFromBody = do
-  result <-
-    runConduit
-      (rawRequestBody .|
-       sinkParserEither (manyUpToN maxRequestableKeys keyValueParser))
+  result <- runConduit (rawRequestBody .| hashesFromStream)
   case result of
     Left err ->
       invalidArgs
@@ -155,6 +153,12 @@ hashesFromBody = do
       case NE.nonEmpty keys of
         Nothing -> invalidArgs ["No keys provided."]
         Just nonEmpty -> pure nonEmpty
+
+-- | Read hashes from a stream.
+hashesFromStream ::
+     Monad m => ConduitT ByteString o m (Either ParseError [(BlobKey, Int)])
+hashesFromStream =
+  sinkParserEither (manyUpToN maxRequestableKeys keyValueParser)
   where
     keyValueParser =
       (,) <$> blobKeyBinaryParser <*> fmap fromIntegral Atto.B.anyWord64be
