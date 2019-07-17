@@ -19,6 +19,10 @@ main = hspec spec
 
 spec :: SpecWith ()
 spec =
+  inputSpec
+
+inputSpec :: SpecWith ()
+inputSpec =
   describe
     "Input parsing"
     (do it
