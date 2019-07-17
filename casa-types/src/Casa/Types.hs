@@ -22,7 +22,10 @@ newtype BlobKey =
   BlobKey
     { unBlobKey :: ByteString
     }
-  deriving (Read, Eq, Show, Ord, Hashable)
+  deriving (Eq, Ord, Hashable)
+
+instance Show BlobKey where
+  show (BlobKey key) = show (Hex.encode key)
 
 instance FromJSON BlobKey where
   parseJSON = parseJSON >=> (either fail pure . blobKeyHexParser)
