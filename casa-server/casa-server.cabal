@@ -1,0 +1,32 @@
+cabal-version:  1.12
+name:           casa-server
+version:        0.0.0
+build-type:     Simple
+
+library
+  exposed-modules:
+    Casa.Server
+  other-modules: Paths_casa_server
+  hs-source-dirs: src
+  default-language: Haskell2010
+  ghc-options: -Wall
+  build-depends:
+      base
+    , yesod
+    , yesod-core
+    , bytestring
+    , text
+    , hashable
+    , unordered-containers
+    , attoparsec
+    , conduit-extra
+    , conduit
+    , containers
+    , base16-bytestring
+
+executable casa
+  main-is: Main.hs
+  hs-source-dirs: app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall
+  default-language: Haskell2010
+  build-depends: base, yesod, casa-server
