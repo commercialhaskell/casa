@@ -14,11 +14,9 @@ import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Builder as SB
 import           Data.Conduit
 import           Data.Conduit.Attoparsec
-import qualified Data.Conduit.List as CL
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HM
 import           Data.Text (Text)
-import qualified Data.Text as T
 import           Data.Typeable
 import           Network.HTTP.Simple
 import           Network.HTTP.Types
