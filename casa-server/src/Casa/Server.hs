@@ -49,6 +49,7 @@ import           Data.Pool
 import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Word
+import qualified Database.Esqueleto as E
 import           Database.Persist.Postgresql
 import           System.Environment
 import           Yesod hiding (Content)
@@ -106,10 +107,17 @@ mkYesod "App" [parseRoutesNoCheck|
 
 -- | Get a single blob in a web interface.
 getSingleBlobR :: BlobKey -> Handler TypedContent
-getSingleBlobR blobKey =
-  case HM.lookup blobKey hardCodedKeys of
+getSingleBlobR blobKey = do
+  contents <-
+    runDB
+      (E.select
+         (E.from
+            (\content -> do
+               E.where_ (content E.^. ContentKey E.==. E.val blobKey)
+               return (content E.^. ContentBlob))))
+  case listToMaybe contents of
     Nothing -> notFound
-    Just bytes ->
+    Just (E.Value bytes) ->
       pure
         (TypedContent
            "application/octet-stream"

@@ -29,6 +29,7 @@ library
     , resource-pool
     , persistent-postgresql
     , monad-logger
+    , esqueleto
 
 executable casa-server
   main-is: Main.hs
