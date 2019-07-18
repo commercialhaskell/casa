@@ -115,7 +115,7 @@ Content
 -- Routes
 
 mkYesod "App" [parseRoutesNoCheck|
-  /batch BatchBlobsR POST
+  /v1/batch BatchBlobsR POST
   /#BlobKey SingleBlobR GET
 |]
 
