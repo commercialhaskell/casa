@@ -98,16 +98,17 @@ Content
 -- Routes
 
 mkYesod "App" [parseRoutesNoCheck|
-  /v1/batch BatchBlobsR POST
-  /#BlobKey SingleBlobR GET
+  /v1/pull PullR POST
+  /v1/push PushR POST
+  /#BlobKey KeyR GET
 |]
 
 --------------------------------------------------------------------------------
 -- Handlers
 
 -- | Get a single blob in a web interface.
-getSingleBlobR :: BlobKey -> Handler TypedContent
-getSingleBlobR blobKey = do
+getKeyR :: BlobKey -> Handler TypedContent
+getKeyR blobKey = do
   contents <-
     runDB
       (E.select
@@ -123,9 +124,13 @@ getSingleBlobR blobKey = do
            "application/octet-stream"
            (ContentBuilder (S.byteString bytes) (Just (S.length bytes))))
 
--- | Get a batch of blobs.
-postBatchBlobsR :: Handler TypedContent
-postBatchBlobsR = do
+-- | Push a batch of blobs.
+postPushR :: Handler ()
+postPushR = pure ()
+
+-- | Pull a batch of blobs.
+postPullR :: Handler TypedContent
+postPullR = do
   keyLenPairs <- hashesFromBody
   let keys = fmap fst keyLenPairs
       source =

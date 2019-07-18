@@ -105,7 +105,7 @@ integrationSpec =
                 (const
                    (runConduitRes
                       (blobsSource
-                         ("http://localhost:" ++ show port ++ "/v1/batch")
+                         ("http://localhost:" ++ show port ++ "/v1/pull")
                          (HM.fromList
                             [ ( partialKey
                                   "334d016f755cd6dc58c53a86e183882f8ec14f52fb05345887c8a5edd42c87b7"
