@@ -57,7 +57,7 @@ import           Yesod hiding (Content)
 -- Constants
 
 maximumContentLen :: Word64
-maximumContentLen = (1024 * 50) -- TODO: set to 50k
+maximumContentLen = (1024 * 50)
 
 --------------------------------------------------------------------------------
 -- Types
@@ -82,23 +82,6 @@ instance YesodPersist App where
     runDB action = do
         App {appPool} <- getYesod
         runSqlPool action appPool
-
--- -- | A blob of binary content.
--- newtype Blob =
---   Blob
---     { unBlob :: ByteString
---     }
---      deriving (Read, Eq, Show, IsString, PersistFieldSql, PersistField)
-
--- instance ToTypedContent Blob where
---   toTypedContent = TypedContent "application/octet-stream" . toContent
-
--- instance ToContent Blob where
---   toContent (Blob bytes) =
---     ContentBuilder (S.byteString bytes) (Just (S.length bytes))
-
--- blobToBuilder :: Blob -> S.Builder
--- blobToBuilder = S.byteString . unBlob
 
 --------------------------------------------------------------------------------
 -- Model
