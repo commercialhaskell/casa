@@ -22,7 +22,6 @@ module Casa.Server
 import           Casa.Types
 import           Control.Applicative
 import qualified Data.Attoparsec.Binary as Atto.B
-import qualified Data.Attoparsec.ByteString as Atto.B
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as S
 import qualified Data.ByteString.Builder as S
@@ -38,13 +37,14 @@ import           Data.Maybe
 import           Data.String
 import           Data.Text (Text)
 import qualified Data.Text as T
+import           Data.Word
 import           Yesod
 
 --------------------------------------------------------------------------------
 -- Constants
 
-maxRequestableKeys :: Int
-maxRequestableKeys = 2
+maximumContentLen :: Word64
+maximumContentLen = (1024 * 50) -- TODO: set to 50k
 
 --------------------------------------------------------------------------------
 -- Types
@@ -53,7 +53,7 @@ maxRequestableKeys = 2
 data App = App
 
 instance Yesod App where
-  maximumContentLength _ _ = Just (1024 * 20)
+  maximumContentLength _ _ = Just maximumContentLen
   makeSessionBackend _ = return Nothing
 
 -- | A blob of binary content.
@@ -158,21 +158,10 @@ hashesFromBody = do
 hashesFromStream ::
      Monad m => ConduitT ByteString o m (Either ParseError [(BlobKey, Int)])
 hashesFromStream =
-  sinkParserEither (manyUpToN maxRequestableKeys keyValueParser)
+  sinkParserEither (some keyValueParser)
   where
     keyValueParser =
       (,) <$> blobKeyBinaryParser <*> fmap fromIntegral Atto.B.anyWord64be
-
--- | Many occurences up to N.
-manyUpToN :: Int -> Atto.B.Parser a -> Atto.B.Parser [a]
-manyUpToN n m = do
-  v <- fmap Just m <|> fmap (const Nothing) Atto.B.endOfInput
-  case v of
-    Nothing -> pure []
-    Just x ->
-      case n of
-        0 -> fail "Max keys reached."
-        _ -> fmap (x :) (manyUpToN (n - 1) m)
 
 --------------------------------------------------------------------------------
 -- Debugging/dev
