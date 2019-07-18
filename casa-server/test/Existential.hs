@@ -11,13 +11,16 @@ import           Casa.Server
 import           Casa.Types
 import           Control.Concurrent.Async
 import           Control.Exception
+import           Control.Monad.Trans.Reader
 import qualified Data.ByteString.Builder as SB
 import           Data.Conduit
 import           Data.Conduit.Attoparsec
 import           Data.Conduit.ByteString.Builder
 import qualified Data.Conduit.List as CL
 import qualified Data.HashMap.Strict as HM
+import           Data.Pool
 import           Data.Text (Text)
+import           Database.Persist.Postgresql
 import qualified Network.BSD as Network
 import qualified Network.Socket as Network
 import qualified Network.Wai.Handler.Warp as Warp
@@ -25,7 +28,10 @@ import           Test.Hspec
 import           Yesod
 
 main :: IO ()
-main = hspec spec
+main = do
+  withDBPool
+    (\pool -> withResource pool (runReaderT (runMigration migrateAll)))
+  hspec spec
 
 spec :: SpecWith ()
 spec = do
@@ -89,6 +95,7 @@ integrationSpec =
        "Batch get"
        (shouldReturn
           (do (port, runner) <-
+                -- include migrateAll here somehow too
                 withDBPool
                   (\pool ->
                      liftIO

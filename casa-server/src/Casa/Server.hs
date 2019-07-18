@@ -1,3 +1,6 @@
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 {-# LANGUAGE BangPatterns #-}
@@ -19,6 +22,9 @@ module Casa.Server
   , Widget
   , hashesFromStream
   , withDBPool
+  , migrateAll
+  , Content(..)
+  , ContentId
   ) where
 
 import           Casa.Types
@@ -28,6 +34,7 @@ import qualified Data.Attoparsec.Binary as Atto.B
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as S
 import qualified Data.ByteString.Builder as S
+import qualified Data.ByteString.Builder as SB
 import qualified Data.ByteString.Char8 as S8
 import           Data.Conduit
 import           Data.Conduit.Attoparsec
@@ -39,13 +46,12 @@ import           Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
 import           Data.Maybe
 import           Data.Pool
-import           Data.String
 import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Word
 import           Database.Persist.Postgresql
 import           System.Environment
-import           Yesod
+import           Yesod hiding (Content)
 
 --------------------------------------------------------------------------------
 -- Constants
@@ -77,22 +83,33 @@ instance YesodPersist App where
         App {appPool} <- getYesod
         runSqlPool action appPool
 
--- | A blob of binary content.
-newtype Blob =
-  Blob
-    { unBlob :: ByteString
-    }
-     deriving (Read, Eq, Show, IsString)
+-- -- | A blob of binary content.
+-- newtype Blob =
+--   Blob
+--     { unBlob :: ByteString
+--     }
+--      deriving (Read, Eq, Show, IsString, PersistFieldSql, PersistField)
 
-instance ToTypedContent Blob where
-  toTypedContent = TypedContent "application/octet-stream" . toContent
+-- instance ToTypedContent Blob where
+--   toTypedContent = TypedContent "application/octet-stream" . toContent
 
-instance ToContent Blob where
-  toContent (Blob bytes) =
-    ContentBuilder (S.byteString bytes) (Just (S.length bytes))
+-- instance ToContent Blob where
+--   toContent (Blob bytes) =
+--     ContentBuilder (S.byteString bytes) (Just (S.length bytes))
 
-blobToBuilder :: Blob -> S.Builder
-blobToBuilder = S.byteString . unBlob
+-- blobToBuilder :: Blob -> S.Builder
+-- blobToBuilder = S.byteString . unBlob
+
+--------------------------------------------------------------------------------
+-- Model
+
+share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
+Content
+  key BlobKey
+  blob ByteString
+  Unique BlobUniqueKey key
+|]
+
 
 --------------------------------------------------------------------------------
 -- Routes
@@ -106,11 +123,15 @@ mkYesod "App" [parseRoutesNoCheck|
 -- Handlers
 
 -- | Get a single blob in a web interface.
-getSingleBlobR :: BlobKey -> Handler Blob
+getSingleBlobR :: BlobKey -> Handler TypedContent
 getSingleBlobR blobKey =
   case HM.lookup blobKey hardCodedKeys of
     Nothing -> notFound
-    Just blob -> pure blob
+    Just bytes ->
+      pure
+        (TypedContent
+           "application/octet-stream"
+           (ContentBuilder (S.byteString bytes) (Just (S.length bytes))))
 
 -- | Get a batch of blobs.
 postBatchBlobsR :: Handler TypedContent
@@ -123,7 +144,7 @@ postBatchBlobsR = do
              fmap
                (key, )
                (do blob <- HM.lookup key hardCodedKeys
-                   if S.length (unBlob blob) == len
+                   if S.length blob == len
                      then pure blob
                      else Nothing))
           (toList keys)
@@ -137,7 +158,7 @@ postBatchBlobsR = do
           (CL.sourceList
              (concatMap
                 (\(blobKey, blob) ->
-                   [ Chunk (blobKeyToBuilder blobKey <> blobToBuilder blob)
+                   [ Chunk (blobKeyToBuilder blobKey <> SB.byteString blob)
                      -- Do we want to flush after every file?
                    , Flush
                    ])
@@ -146,7 +167,7 @@ postBatchBlobsR = do
 --------------------------------------------------------------------------------
 -- Hard-coded example keys
 
-hardCodedKeys :: HashMap BlobKey Blob
+hardCodedKeys :: HashMap BlobKey ByteString
 hardCodedKeys =
   HM.fromList
     [ ( partialKey

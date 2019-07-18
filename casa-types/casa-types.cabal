@@ -19,3 +19,4 @@ library
     , hashable
     , aeson
     , path-pieces
+    , persistent

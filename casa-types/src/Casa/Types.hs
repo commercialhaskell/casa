@@ -13,6 +13,8 @@ import qualified Data.ByteString as S
 import qualified Data.ByteString.Base16 as Hex
 import qualified Data.ByteString.Builder as S
 import           Data.Hashable
+import           Database.Persist
+import           Database.Persist.Sql
 import           Data.Text (Text)
 import qualified Data.Text.Encoding as T
 import           Web.PathPieces
@@ -22,7 +24,7 @@ newtype BlobKey =
   BlobKey
     { unBlobKey :: ByteString
     }
-  deriving (Read, Eq, Ord, Hashable)
+  deriving (Read, Eq, Ord, Hashable, PersistField, PersistFieldSql)
 
 instance Show BlobKey where
   show (BlobKey key) = show (Hex.encode key)

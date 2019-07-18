@@ -4,11 +4,18 @@
 
 module Main where
 
-import           Casa.Server
-import           Control.Monad.IO.Class
-import           Yesod
+import Casa.Server
+import Control.Monad.IO.Class
+import Control.Monad.Trans.Reader
+import Data.Pool
+import Database.Persist.Postgresql
+import Yesod
+
+-- include migrateAll here
 
 main :: IO ()
 main = do
   withDBPool
-    (\pool -> liftIO (warpEnv (App {appPool = pool, appLogging = True})))
+    (\pool -> do
+       withResource pool (runReaderT (runMigration migrateAll))
+       liftIO (warpEnv (App {appPool = pool, appLogging = True})))

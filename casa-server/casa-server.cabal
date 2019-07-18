@@ -38,6 +38,9 @@ executable casa-server
   build-depends: base, yesod, casa-server
       , persistent-postgresql
       , bytestring
+    , persistent-postgresql
+    , resource-pool
+    , transformers
 
 test-suite casa-existential-test
   type: exitcode-stdio-1.0
@@ -46,7 +49,25 @@ test-suite casa-existential-test
   ghc-options: -Wall -O0
   default-language: Haskell2010
   build-depends:
-    base, casa-server, hspec, conduit, text, conduit-extra, casa-types, bytestring, async, network, wai, warp, yesod, network-bsd, unordered-containers, casa-client
+      base
+    , casa-server
+    , hspec
+    , conduit
+    , text
+    , conduit-extra
+    , casa-types
+    , bytestring
+    , async
+    , network
+    , wai
+    , warp
+    , yesod
+    , network-bsd
+    , unordered-containers
+    , casa-client
+    , persistent-postgresql
+    , resource-pool
+    , transformers
 
   build-depends: network     >= 2.7 && < 3.1
                  , network-bsd >= 2.7 && < 2.9
