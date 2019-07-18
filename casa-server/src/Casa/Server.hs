@@ -13,7 +13,7 @@
 -- | Casa content-addressable storage archive server.
 
 module Casa.Server
-  ( App(App)
+  ( App(..)
   , resourcesApp
   , Widget
   , hashesFromStream
@@ -50,11 +50,18 @@ maximumContentLen = (1024 * 50) -- TODO: set to 50k
 -- Types
 
 -- | Server app.
-data App = App
+data App =
+  App
+    { appLogging :: Bool
+    }
 
 instance Yesod App where
   maximumContentLength _ _ = Just maximumContentLen
   makeSessionBackend _ = return Nothing
+  shouldLogIO app src level =
+    if appLogging app
+      then defaultShouldLogIO src level
+      else pure False
 
 -- | A blob of binary content.
 newtype Blob =

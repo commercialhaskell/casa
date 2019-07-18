@@ -6,4 +6,4 @@ import Yesod
 import Casa.Server
 
 main :: IO ()
-main = warpEnv App
+main = warpEnv App {appLogging = True}

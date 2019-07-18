@@ -88,7 +88,7 @@ integrationSpec =
     (it
        "Batch get"
        (shouldReturn
-          (do (port, runner) <- runWarpOnFreePort App
+          (do (port, runner) <- runWarpOnFreePort (App {appLogging = False})
               withAsync
                 runner
                 (const
@@ -121,7 +121,7 @@ runWarpOnFreePort :: (Yesod a, YesodDispatch a) => a -> IO (Int, IO ())
 runWarpOnFreePort app = do
   socket <- listenOnLoopback
   port <- fmap fromIntegral (Network.socketPort socket)
-  waiApp <- toWaiApp app
+  waiApp <- toWaiAppPlain app
   pure
     ( port
     , Warp.runSettingsSocket
