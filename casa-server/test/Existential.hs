@@ -116,7 +116,7 @@ integrationSpec =
 -- | Orphan because ParseError doesn't provide it and the test suite needs it.
 deriving instance Eq ParseError
 
--- | Makes a warp runner and returns the port it's running on.
+-- | Makes a warp runner on an available port and returns the port it's running on.
 runWarpOnFreePort :: (Yesod a, YesodDispatch a) => a -> IO (Int, IO ())
 runWarpOnFreePort app = do
   socket <- listenOnLoopback
@@ -129,7 +129,7 @@ runWarpOnFreePort app = do
         socket
         waiApp)
 
--- | Copied from intero, so I know it works.
+-- | Listen on the first available port.
 listenOnLoopback :: IO Network.Socket
 listenOnLoopback = do
   proto <- Network.getProtocolNumber "tcp"
