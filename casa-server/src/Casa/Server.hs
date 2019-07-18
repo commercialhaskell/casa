@@ -40,13 +40,10 @@ import           Data.Conduit
 import           Data.Conduit.Attoparsec
 import qualified Data.Conduit.List as CL
 import           Data.Foldable
-import           Data.HashMap.Strict (HashMap)
-import qualified Data.HashMap.Strict as HM
 import           Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
 import           Data.Maybe
 import           Data.Pool
-import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Word
 import qualified Database.Esqueleto as E
@@ -83,6 +80,9 @@ instance YesodPersist App where
     runDB action = do
         App {appPool} <- getYesod
         runSqlPool action appPool
+
+instance YesodPersistRunner App where
+  getDBRunner = defaultGetDBRunner appPool
 
 --------------------------------------------------------------------------------
 -- Model
@@ -126,47 +126,26 @@ getSingleBlobR blobKey = do
 -- | Get a batch of blobs.
 postBatchBlobsR :: Handler TypedContent
 postBatchBlobsR = do
-  keys <- hashesFromBody
-  -- We can later replace this with a call to a database.
-  let results =
-        mapMaybe
-          (\(key, len) ->
-             fmap
-               (key, )
-               (do blob <- HM.lookup key hardCodedKeys
-                   if S.length blob == len
-                     then pure blob
-                     else Nothing))
-          (toList keys)
+  keyLenPairs <- hashesFromBody
+  let keys = fmap fst keyLenPairs
+      source =
+        E.selectSource
+          (E.from
+             (\content -> do
+                E.where_
+                  (content E.^. ContentKey `E.in_` E.valList (toList keys))
+                return (content E.^. ContentKey, content E.^. ContentBlob)))
   -- We return a stream of key+blob pairs in binary format. The client
   -- knows how long the hash should be and how long the blob should be
   -- based on the hash.
-  pure
-    (TypedContent
-       "application/octet-stream"
-       (ContentSource
-          (CL.sourceList
-             (concatMap
-                (\(blobKey, blob) ->
-                   [ Chunk (blobKeyToBuilder blobKey <> SB.byteString blob)
-                     -- Do we want to flush after every file?
-                   , Flush
-                   ])
-                results))))
-
---------------------------------------------------------------------------------
--- Hard-coded example keys
-
-hardCodedKeys :: HashMap BlobKey ByteString
-hardCodedKeys =
-  HM.fromList
-    [ ( partialKey
-          "334d016f755cd6dc58c53a86e183882f8ec14f52fb05345887c8a5edd42c87b7"
-      , "Hello!")
-    , ( partialKey
-          "514b6bb7c846ecfb8d2d29ef0b5c79b63e6ae838f123da936fe827fda654276c"
-      , "World!")
-    ]
+  respondSourceDB
+    "application/octet-stream"
+    (source .|
+     CL.concatMap
+       (\(E.Value blobKey,E.Value blob) ->
+          [ Chunk (blobKeyToBuilder blobKey <> SB.byteString blob)
+          , Flush -- Do we want to flush after every blob?
+          ]))
 
 --------------------------------------------------------------------------------
 -- Input reader
@@ -194,14 +173,6 @@ hashesFromStream =
   where
     keyValueParser =
       (,) <$> blobKeyBinaryParser <*> fmap fromIntegral Atto.B.anyWord64be
-
---------------------------------------------------------------------------------
--- Debugging/dev
-
--- | Make a partial key.
-partialKey :: Text -> BlobKey
-partialKey = either error id . blobKeyHexParser
-{-# DEPRECATED partialKey "This is just for debugging." #-}
 
 --------------------------------------------------------------------------------
 -- DB connection
