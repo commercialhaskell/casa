@@ -88,7 +88,12 @@ integrationSpec =
     (it
        "Batch get"
        (shouldReturn
-          (do (port, runner) <- runWarpOnFreePort (App {appLogging = False})
+          (do (port, runner) <-
+                withDBPool
+                  (\pool ->
+                     liftIO
+                       (runWarpOnFreePort
+                          (App {appLogging = False, appPool = pool})))
               withAsync
                 runner
                 (const
@@ -104,9 +109,11 @@ integrationSpec =
                               , 6)
                             ]) .|
                        CL.consume))))
-          [ ( partialKey "334d016f755cd6dc58c53a86e183882f8ec14f52fb05345887c8a5edd42c87b7"
+          [ ( partialKey
+                "334d016f755cd6dc58c53a86e183882f8ec14f52fb05345887c8a5edd42c87b7"
             , "Hello!")
-          , ( partialKey "514b6bb7c846ecfb8d2d29ef0b5c79b63e6ae838f123da936fe827fda654276c"
+          , ( partialKey
+                "514b6bb7c846ecfb8d2d29ef0b5c79b63e6ae838f123da936fe827fda654276c"
             , "World!")
           ]))
 

@@ -1,9 +1,14 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 -- | Main entry point.
 
 module Main where
 
-import Yesod
-import Casa.Server
+import           Casa.Server
+import           Control.Monad.IO.Class
+import           Yesod
 
 main :: IO ()
-main = warpEnv App {appLogging = True}
+main = do
+  withDBPool
+    (\pool -> liftIO (warpEnv (App {appPool = pool, appLogging = True})))

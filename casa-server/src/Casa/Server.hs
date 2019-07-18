@@ -1,3 +1,4 @@
+{-# LANGUAGE NamedFieldPuns #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -17,14 +18,17 @@ module Casa.Server
   , resourcesApp
   , Widget
   , hashesFromStream
+  , withDBPool
   ) where
 
 import           Casa.Types
 import           Control.Applicative
+import           Control.Monad.Logger
 import qualified Data.Attoparsec.Binary as Atto.B
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as S
 import qualified Data.ByteString.Builder as S
+import qualified Data.ByteString.Char8 as S8
 import           Data.Conduit
 import           Data.Conduit.Attoparsec
 import qualified Data.Conduit.List as CL
@@ -34,10 +38,13 @@ import qualified Data.HashMap.Strict as HM
 import           Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
 import           Data.Maybe
+import           Data.Pool
 import           Data.String
 import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Word
+import           Database.Persist.Postgresql
+import           System.Environment
 import           Yesod
 
 --------------------------------------------------------------------------------
@@ -52,7 +59,8 @@ maximumContentLen = (1024 * 50) -- TODO: set to 50k
 -- | Server app.
 data App =
   App
-    { appLogging :: Bool
+    { appLogging :: !Bool
+    , appPool :: !(Pool SqlBackend)
     }
 
 instance Yesod App where
@@ -62,6 +70,12 @@ instance Yesod App where
     if appLogging app
       then defaultShouldLogIO src level
       else pure False
+
+instance YesodPersist App where
+    type YesodPersistBackend App = SqlBackend
+    runDB action = do
+        App {appPool} <- getYesod
+        runSqlPool action appPool
 
 -- | A blob of binary content.
 newtype Blob =
@@ -177,3 +191,18 @@ hashesFromStream =
 partialKey :: Text -> BlobKey
 partialKey = either error id . blobKeyHexParser
 {-# DEPRECATED partialKey "This is just for debugging." #-}
+
+--------------------------------------------------------------------------------
+-- DB connection
+
+withDBPool ::
+     (IsPersistBackend b, BaseBackend b ~ SqlBackend)
+  => (Pool b -> LoggingT IO a)
+  -> IO a
+withDBPool cont = do
+  dbstr <- getEnv "DBCONN"
+  runStdoutLoggingT
+    (withPostgresqlPool
+       (S8.pack dbstr)
+       10
+       cont)
