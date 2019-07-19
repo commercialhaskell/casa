@@ -88,7 +88,26 @@ inputSpec =
 -- Integration tests
 
 integrationSpec :: SpecWith ()
-integrationSpec =
+integrationSpec = do
+  describe
+    "Push"
+    (it
+       "Push"
+       (shouldReturn
+          (do (port, runner) <-
+                withDBPool
+                  (\pool ->
+                     liftIO
+                       (runWarpOnFreePort
+                          (App {appLogging = False, appPool = pool})))
+              withAsync
+                runner
+                (const
+                   (runConduitRes
+                      (blobsSink
+                         ("http://localhost:" ++ show port ++ "/v1/push")
+                         (CL.sourceList ["Hello!", "World!"])))))
+          ()))
   describe
     "Pull"
     (it
@@ -164,4 +183,3 @@ listenOnLoopback = do
 -- | Make a partial key.
 partialKey :: Text -> BlobKey
 partialKey = either error id . blobKeyHexParser
-{-# DEPRECATED partialKey "This is just for debugging." #-}

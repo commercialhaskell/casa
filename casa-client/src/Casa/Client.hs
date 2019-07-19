@@ -5,6 +5,7 @@
 
 module Casa.Client
   ( blobsSource
+  , blobsSink
   ) where
 
 import           Casa.Types
@@ -13,25 +14,60 @@ import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Resource
 import qualified Data.Attoparsec.ByteString as Atto
 import           Data.ByteString (ByteString)
+import qualified Data.ByteString as S
 import qualified Data.ByteString.Builder as SB
 import           Data.Conduit
 import           Data.Conduit.Attoparsec
+import           Data.Conduit.ByteString.Builder
+import qualified Data.Conduit.List as CL
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HM
 import           Data.Text (Text)
 import           Data.Typeable
+import           Network.HTTP.Client.Conduit (requestBodySourceChunked)
 import           Network.HTTP.Simple
 import           Network.HTTP.Types
 
--- | An exception from blob consuming.
-data BlobsException
+-- | An exception from blob consuming/sending.
+data PullException
   = AttoParseError ParseError
   | BadHttpStatus Status
   | TooManyReturnedKeys Int
   deriving (Show, Typeable)
-instance Exception BlobsException
+instance Exception PullException
 
--- | Make a source of blobs from a URL. Throws 'BlobsException', so catch that.
+-- | An exception from blob consuming/sending.
+data PushException
+  = PushBadHttpStatus Status
+  deriving (Show, Typeable)
+instance Exception PushException
+
+-- | A sink to push blobs to the server. Throws 'PushException'.
+blobsSink ::
+     (MonadIO m, MonadThrow m)
+  => String
+  -> ConduitT () ByteString IO ()
+  -> m ()
+blobsSink url blobs = do
+  request <- makeRequest
+  response <- httpNoBody request
+  case getResponseStatus response of
+    Status 200 _ -> pure ()
+    status -> throwM (PushBadHttpStatus status)
+  where
+    makeRequest =
+      fmap
+        (setRequestBody
+           (requestBodySourceChunked
+              (blobs .|
+               CL.map
+                 (\v ->
+                    SB.word64BE (fromIntegral (S.length v)) <> SB.byteString v) .|
+               builderToByteString)) .
+         setRequestMethod "POST")
+        (parseRequest url)
+
+-- | Make a source of blobs from a URL. Throws 'PullException'.
 blobsSource ::
      (MonadThrow m, MonadResource m, MonadIO m)
   => String
@@ -79,8 +115,3 @@ blobKeyValueParser lengths = do
   case HM.lookup blobKey lengths of
     Nothing -> fail ("Invalid key: " <> show blobKey)
     Just len -> fmap (blobKey, ) (Atto.take len)
-
--- | Make a partial key.
-partialKey :: Text -> BlobKey
-partialKey = either error id . blobKeyHexParser
-{-# DEPRECATED partialKey "This is just for debugging." #-}
