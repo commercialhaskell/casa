@@ -90,9 +90,9 @@ inputSpec =
 integrationSpec :: SpecWith ()
 integrationSpec =
   describe
-    "Batch get"
+    "Pull"
     (it
-       "Batch get"
+       "Pull"
        (shouldReturn
           (do (port, runner) <-
                 withDBPool
