@@ -223,10 +223,9 @@ withDBPool ::
 withDBPool cont = do
   dbstr <- getEnv "DBCONN"
   runStdoutLoggingT
-    (withPostgresqlPool
-       (S8.pack dbstr)
-       10
-       cont)
+    (filterLogger
+       (\_src _lvl -> False)
+       (withPostgresqlPool (S8.pack dbstr) 10 cont))
 
 --------------------------------------------------------------------------------
 -- Hashing
