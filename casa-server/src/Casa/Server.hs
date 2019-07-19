@@ -30,7 +30,10 @@ module Casa.Server
 import           Casa.Types
 import           Control.Applicative
 import           Control.Monad.Logger
+import qualified Crypto.Hash as Crypto
 import qualified Data.Attoparsec.Binary as Atto.B
+import qualified Data.Attoparsec.ByteString as Atto.B
+import qualified Data.ByteArray as Mem
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as S
 import qualified Data.ByteString.Builder as S
@@ -40,6 +43,7 @@ import           Data.Conduit
 import           Data.Conduit.Attoparsec
 import qualified Data.Conduit.List as CL
 import           Data.Foldable
+import           Data.Functor
 import           Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
 import           Data.Maybe
@@ -125,8 +129,21 @@ getKeyR blobKey = do
            (ContentBuilder (S.byteString bytes) (Just (S.length bytes))))
 
 -- | Push a batch of blobs.
-postPushR :: Handler ()
-postPushR = pure ()
+postPushR :: Handler TypedContent
+postPushR =
+  respondSourceDB
+    "application/octet-stream"
+    (blobsFromBody .|
+     awaitForever
+       (\result ->
+          case result of
+            Left err ->
+              invalidArgs [T.pack ("Invalid (len,blob) pair: " ++ show err)]
+            Right (blobKey, blob) ->
+              lift
+                (void
+                   (insertUnique
+                      (Content {contentKey = blobKey, contentBlob = blob})))))
 
 -- | Pull a batch of blobs.
 postPullR :: Handler TypedContent
@@ -154,6 +171,23 @@ postPullR = do
 
 --------------------------------------------------------------------------------
 -- Input reader
+
+-- | Read the list of content blobs from the body.
+blobsFromBody ::
+     (MonadHandler m)
+  => ConduitT i (Either ParseError (BlobKey, ByteString)) m ()
+blobsFromBody = do
+  rawRequestBody .| blobsFromStream
+
+-- | Read blobs from a stream.
+blobsFromStream ::
+     Monad m => ConduitT ByteString (Either ParseError (BlobKey, ByteString)) m ()
+blobsFromStream = conduitParserEither lenBlobParser .| CL.map (fmap snd)
+  where
+    lenBlobParser = do
+      len <- fmap fromIntegral Atto.B.anyWord64be
+      bytes <- Atto.B.take len
+      pure (BlobKey (sha256Hash bytes), bytes)
 
 -- | Read the list of hashes from the body.
 keyLenPairsFromBody ::
@@ -193,3 +227,9 @@ withDBPool cont = do
        (S8.pack dbstr)
        10
        cont)
+
+--------------------------------------------------------------------------------
+-- Hashing
+
+sha256Hash :: ByteString -> ByteString
+sha256Hash = Mem.convert . Crypto.hashWith Crypto.SHA256

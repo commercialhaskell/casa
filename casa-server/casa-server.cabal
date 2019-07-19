@@ -30,6 +30,8 @@ library
     , persistent-postgresql
     , monad-logger
     , esqueleto
+    , cryptonite
+    , memory
 
 executable casa-server
   main-is: Main.hs
