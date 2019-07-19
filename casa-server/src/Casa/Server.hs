@@ -131,7 +131,7 @@ postPushR = pure ()
 -- | Pull a batch of blobs.
 postPullR :: Handler TypedContent
 postPullR = do
-  keyLenPairs <- hashesFromBody
+  keyLenPairs <- keyLenPairsFromBody
   let keys = fmap fst keyLenPairs
       source =
         E.selectSource
@@ -156,10 +156,10 @@ postPullR = do
 -- Input reader
 
 -- | Read the list of hashes from the body.
-hashesFromBody ::
+keyLenPairsFromBody ::
      (MonadHandler m)
   => m (NonEmpty (BlobKey, Int))
-hashesFromBody = do
+keyLenPairsFromBody = do
   result <- runConduit (rawRequestBody .| hashesFromStream)
   case result of
     Left err ->
