@@ -11,6 +11,7 @@ module Casa.Client
 import           Casa.Types
 import           Control.Monad.Catch
 import           Control.Monad.IO.Class
+import           Control.Monad.IO.Unlift
 import           Control.Monad.Trans.Resource
 import qualified Data.Attoparsec.ByteString as Atto
 import           Data.ByteString (ByteString)
@@ -43,22 +44,24 @@ instance Exception PushException
 
 -- | A sink to push blobs to the server. Throws 'PushException'.
 blobsSink ::
-     (MonadIO m, MonadThrow m)
+     (MonadIO m, MonadThrow m, MonadUnliftIO m)
   => String
-  -> ConduitT () ByteString IO ()
+
+  -> ConduitT () ByteString m ()
   -> m ()
 blobsSink url blobs = do
-  request <- makeRequest
+  runInIO <- askUnliftIO
+  request <- makeRequest runInIO
   response <- httpNoBody request
   case getResponseStatus response of
     Status 200 _ -> pure ()
     status -> throwM (PushBadHttpStatus status)
   where
-    makeRequest =
+    makeRequest (UnliftIO runInIO) =
       fmap
         (setRequestBody
            (requestBodySourceChunked
-              (blobs .|
+              (transPipe runInIO blobs .|
                CL.map
                  (\v ->
                     SB.word64BE (fromIntegral (S.length v)) <> SB.byteString v) .|
