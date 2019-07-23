@@ -71,13 +71,7 @@ data App =
     , appPool :: !(Pool SqlBackend)
     }
 
-instance Yesod App where
-  maximumContentLength _ _ = Just maximumContentLen
-  makeSessionBackend _ = return Nothing
-  shouldLogIO app src level =
-    if appLogging app
-      then defaultShouldLogIO src level
-      else pure False
+
 
 instance YesodPersist App where
     type YesodPersistBackend App = SqlBackend
@@ -106,6 +100,19 @@ mkYesod "App" [parseRoutesNoCheck|
   /v1/push PushR POST
   /#BlobKey KeyR GET
 |]
+
+instance Yesod App where
+  maximumContentLength _ mroute =
+    case mroute of
+      Nothing -> Just maximumContentLen
+      Just PullR -> Just maximumContentLen
+      Just KeyR{} -> Just maximumContentLen
+      Just PushR{} -> Nothing
+  makeSessionBackend _ = return Nothing
+  shouldLogIO app src level =
+    if appLogging app
+      then defaultShouldLogIO src level
+      else pure False
 
 --------------------------------------------------------------------------------
 -- Handlers
