@@ -49,6 +49,7 @@ import qualified Data.List.NonEmpty as NE
 import           Data.Maybe
 import           Data.Pool
 import qualified Data.Text as T
+import           Data.Time
 import           Data.Word
 import qualified Database.Esqueleto as E
 import           Database.Persist.Postgresql
@@ -88,6 +89,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 Content
   key BlobKey
   blob ByteString
+  created UTCTime default=now()
   Unique BlobUniqueKey key
 |]
 
@@ -98,6 +100,7 @@ mkYesod "App" [parseRoutesNoCheck|
   /v1/pull PullR POST
   /v1/push PushR POST
   /#BlobKey KeyR GET
+  /v1/metadata/#BlobKey MetadataR GET
 |]
 
 instance Yesod App where
@@ -107,12 +110,14 @@ instance Yesod App where
       PushR -> pure (appAuthorized app)
       PullR -> pure Authorized
       KeyR {} -> pure Authorized
+      MetadataR {} -> pure Authorized
   maximumContentLength _ mroute =
     case mroute of
       Nothing -> Just maximumContentLen
       Just PullR -> Just maximumContentLen
       Just KeyR {} -> Just maximumContentLen
       Just PushR {} -> Nothing
+      Just MetadataR {} -> Just maximumContentLen
   makeSessionBackend _ = return Nothing
   shouldLogIO app src level =
     if appLogging app
@@ -121,6 +126,21 @@ instance Yesod App where
 
 --------------------------------------------------------------------------------
 -- Handlers
+
+-- | Get a single blob in a web interface.
+getMetadataR :: BlobKey -> Handler Value
+getMetadataR key = do
+  mblob <- runDB (selectFirst [ContentKey ==. key] [])
+  case mblob of
+    Nothing -> notFound
+    Just (Entity _ blob) ->
+      pure
+        (object
+           [ "key" .= contentKey blob
+           , "created" .= contentCreated blob
+           , "length" .= S.length (contentBlob blob)
+           , "preview" .= show (S.take 80 (contentBlob blob))
+           ])
 
 -- | Get a single blob in a web interface.
 getKeyR :: BlobKey -> Handler TypedContent
@@ -142,7 +162,10 @@ getKeyR blobKey = do
 
 -- | Push a batch of blobs.
 postPushR :: Handler TypedContent
-postPushR =
+postPushR = do
+  -- I take the time at the beginning of the request, this way it's
+  -- easier to see which keys were uploaded at the same time.
+  now <- liftIO getCurrentTime
   respondSourceDB
     "application/octet-stream"
     (blobsFromBody .|
@@ -155,7 +178,11 @@ postPushR =
               lift
                 (void
                    (insertUnique
-                      (Content {contentKey = blobKey, contentBlob = blob})))))
+                      (Content
+                         { contentCreated = now
+                         , contentKey = blobKey
+                         , contentBlob = blob
+                         })))))
 
 -- | Pull a batch of blobs.
 postPullR :: Handler TypedContent

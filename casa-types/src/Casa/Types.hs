@@ -32,6 +32,9 @@ instance Show BlobKey where
 instance FromJSON BlobKey where
   parseJSON = parseJSON >=> (either fail pure . blobKeyHexParser)
 
+instance ToJSON BlobKey where
+  toJSON = String . T.decodeUtf8 . Hex.encode . unBlobKey
+
 instance PathPiece BlobKey where
   fromPathPiece =
     either (const Nothing) Just .
