@@ -99,14 +99,17 @@ integrationSpec = do
                   (\pool ->
                      liftIO
                        (runWarpOnFreePort
-                          (App {appLogging = False, appPool = pool})))
+                          (App
+                             { appAuthorized = Authorized
+                             , appLogging = False
+                             , appPool = pool
+                             })))
               withAsync
                 runner
                 (const
-                   (runConduitRes
-                      (blobsSink
-                         ("http://localhost:" ++ show port ++ "/v1/push")
-                         (CL.sourceList ["Hello!", "World!"])))))
+                   (blobsSink
+                      ("http://localhost:" ++ show port ++ "/v1/push")
+                      (CL.sourceList ["Hello!", "World!"]))))
           ()))
   describe
     "Pull"
@@ -118,7 +121,11 @@ integrationSpec = do
                   (\pool ->
                      liftIO
                        (runWarpOnFreePort
-                          (App {appLogging = False, appPool = pool})))
+                          (App
+                             { appAuthorized = Unauthorized "Not needed in this test"
+                             , appLogging = False
+                             , appPool = pool
+                             })))
               withAsync
                 runner
                 (const

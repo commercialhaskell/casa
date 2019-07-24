@@ -69,9 +69,8 @@ data App =
   App
     { appLogging :: !Bool
     , appPool :: !(Pool SqlBackend)
+    , appAuthorized :: !AuthResult
     }
-
-
 
 instance YesodPersist App where
     type YesodPersistBackend App = SqlBackend
@@ -102,12 +101,18 @@ mkYesod "App" [parseRoutesNoCheck|
 |]
 
 instance Yesod App where
+  isAuthorized route _ignored = do
+    app <- getYesod
+    case route of
+      PushR -> pure (appAuthorized app)
+      PullR -> pure Authorized
+      KeyR {} -> pure Authorized
   maximumContentLength _ mroute =
     case mroute of
       Nothing -> Just maximumContentLen
       Just PullR -> Just maximumContentLen
-      Just KeyR{} -> Just maximumContentLen
-      Just PushR{} -> Nothing
+      Just KeyR {} -> Just maximumContentLen
+      Just PushR {} -> Nothing
   makeSessionBackend _ = return Nothing
   shouldLogIO app src level =
     if appLogging app

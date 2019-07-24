@@ -46,7 +46,6 @@ instance Exception PushException
 blobsSink ::
      (MonadIO m, MonadThrow m, MonadUnliftIO m)
   => String
-
   -> ConduitT () ByteString m ()
   -> m ()
 blobsSink url blobs = do
