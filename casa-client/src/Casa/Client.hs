@@ -25,6 +25,7 @@ import           Data.Conduit.ByteString.Builder
 import qualified Data.Conduit.List as CL
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HM
+import           Data.Monoid ((<>))
 import           Data.Typeable
 import           Network.HTTP.Client.Conduit (requestBodySourceChunked)
 import           Network.HTTP.Simple
