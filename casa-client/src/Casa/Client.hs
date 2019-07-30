@@ -13,7 +13,9 @@ import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 import           Control.Monad.IO.Unlift
 import           Control.Monad.Trans.Resource
+import qualified Crypto.Hash as Crypto
 import qualified Data.Attoparsec.ByteString as Atto
+import qualified Data.ByteArray as Mem
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as S
 import qualified Data.ByteString.Builder as SB
@@ -115,4 +117,12 @@ blobKeyValueParser lengths = do
   blobKey <- blobKeyBinaryParser
   case HM.lookup blobKey lengths of
     Nothing -> fail ("Invalid key: " <> show blobKey)
-    Just len -> fmap (blobKey, ) (Atto.take len)
+    Just len -> do
+      blob <- (Atto.take len)
+      if BlobKey (sha256Hash blob) == blobKey
+        then pure (blobKey, blob)
+        else fail ("Content does not match SHA256 hash: " ++ show blobKey)
+
+-- | Hash some raw bytes.
+sha256Hash :: ByteString -> ByteString
+sha256Hash = Mem.convert . Crypto.hashWith Crypto.SHA256

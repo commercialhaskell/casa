@@ -25,3 +25,5 @@ library
     , unordered-containers
     , attoparsec
     , unliftio-core
+    , cryptonite
+    , memory

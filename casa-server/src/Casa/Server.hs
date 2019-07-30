@@ -269,5 +269,6 @@ withDBPool cont = do
 --------------------------------------------------------------------------------
 -- Hashing
 
+-- | Hash some raw bytes.
 sha256Hash :: ByteString -> ByteString
 sha256Hash = Mem.convert . Crypto.hashWith Crypto.SHA256
