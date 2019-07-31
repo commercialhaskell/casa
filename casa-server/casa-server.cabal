@@ -33,6 +33,7 @@ library
     , cryptonite
     , memory
     , time
+    , blaze-html
 
 executable casa-server
   main-is: Main.hs

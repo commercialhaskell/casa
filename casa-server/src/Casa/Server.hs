@@ -54,6 +54,9 @@ import           Data.Word
 import qualified Database.Esqueleto as E
 import           Database.Persist.Postgresql
 import           System.Environment
+import           Text.Blaze.Html5 ((!))
+import qualified Text.Blaze.Html5 as H
+import qualified Text.Blaze.Html5.Attributes as A
 import           Yesod hiding (Content)
 
 --------------------------------------------------------------------------------
@@ -97,10 +100,11 @@ Content
 -- Routes
 
 mkYesod "App" [parseRoutesNoCheck|
+  / HomeR GET
   /v1/pull PullR POST
   /v1/push PushR POST
-  /#BlobKey KeyR GET
   /v1/metadata/#BlobKey MetadataR GET
+  /#BlobKey KeyR GET
 |]
 
 instance Yesod App where
@@ -111,6 +115,7 @@ instance Yesod App where
       PullR -> pure Authorized
       KeyR {} -> pure Authorized
       MetadataR {} -> pure Authorized
+      HomeR -> pure Authorized
   maximumContentLength _ mroute =
     case mroute of
       Nothing -> Just maximumContentLen
@@ -118,6 +123,7 @@ instance Yesod App where
       Just KeyR {} -> Just maximumContentLen
       Just PushR {} -> Nothing
       Just MetadataR {} -> Just maximumContentLen
+      Just HomeR {} -> Just maximumContentLen
   makeSessionBackend _ = return Nothing
   shouldLogIO app src level =
     if appLogging app
@@ -126,6 +132,47 @@ instance Yesod App where
 
 --------------------------------------------------------------------------------
 -- Handlers
+
+-- | Display some simple message in the home page.
+getHomeR :: Handler Html
+getHomeR = do
+  dates <-
+    runDB
+      (E.select
+         (E.from
+            (\content -> do
+               E.orderBy [E.desc (content E.^. ContentCreated)]
+               E.limit 1
+               pure (content E.^. ContentCreated))))
+  totals <-
+    runDB
+      (E.select (E.from (\content -> pure (E.count (content E.^. ContentId)))))
+  pure
+    (H.html
+       (do H.head
+             (do H.title "Casa"
+                 H.style "body{font-family:sans-serif;}")
+           H.body
+             (do H.h1 "Casa"
+                 H.h2 "Content-Addressable Storage Archive"
+                 H.p "Statistics:"
+                 H.ul
+                   (do H.li
+                         (do "Last uploaded blob: "
+                             maybe
+                               "Never"
+                               (toHtml . show)
+                               (fmap (\(E.Value t) -> t) (listToMaybe dates)))
+                       H.li
+                         (do "Total blobs in server: "
+                             toHtml
+                               (show
+                                  (sum (map (\(E.Value x) -> x) totals) :: Int))))
+                 H.hr
+                 H.p
+                   (do "A service provided by "
+                       H.a ! A.href "https://www.fpcomplete.com/" $
+                         "FP Complete"))))
 
 -- | Get a single blob in a web interface.
 getMetadataR :: BlobKey -> Handler Value
