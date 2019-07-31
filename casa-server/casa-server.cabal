@@ -46,6 +46,8 @@ executable casa-server
     , resource-pool
     , transformers
     , async
+    , wai-extra
+    , warp
 
 test-suite casa-existential-test
   type: exitcode-stdio-1.0
