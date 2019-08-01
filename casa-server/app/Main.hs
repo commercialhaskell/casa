@@ -13,7 +13,7 @@ import Database.Persist.Postgresql
 import System.Environment
 import Yesod
 import Network.Wai.Handler.Warp (run)
-import Network.Wai.Middleware.Gzip (gzip, def)
+import Network.Wai.Middleware.Gzip (gzip, def, gzipCheckMime)
 
 -- | Run two servers on different ports, accessing the same app, but
 -- with a different 'appAuthorized' flag. They share the same database
@@ -23,11 +23,11 @@ main = do
   unauthorizedPort <- fmap read (getEnv "PORT")
   authorizedPort <- fmap read (getEnv "AUTHORIZED_PORT")
   let runWithAuthAndPort pool port authorized = do
-        let yapp = App {appAuthorized = authorized, appPool = pool, appLogging = True}
+        let yapp =
+              App
+                {appAuthorized = authorized, appPool = pool, appLogging = True}
         app <- toWaiApp yapp
-        run
-          port
-          (gzip def app)
+        run port (gzip def {gzipCheckMime = const True} app)
   withDBPool
     (\pool -> do
        withResource pool (runReaderT (runMigration migrateAll))
