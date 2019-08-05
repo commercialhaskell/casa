@@ -2,7 +2,7 @@
 
 Running
 
-    $ DBCONN="host='localhost' port='5432' dbname=casa user=casa password=casa" PORT=3000 casa-server
+    $ DBCONN="host='localhost' port='5432' dbname=casa user=casa password=casa" PORT=3000 AUTHORIZED_PORT=3031 casa-server
 
 Syntax is https://www.postgresql.org/docs/9.3/libpq-connect.html#AEN39681
 
