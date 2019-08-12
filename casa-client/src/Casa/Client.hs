@@ -11,6 +11,7 @@ module Casa.Client
   ) where
 
 import           Casa.Types
+import           Control.Monad
 import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 import           Control.Monad.IO.Unlift
@@ -27,6 +28,7 @@ import           Data.Conduit.ByteString.Builder
 import qualified Data.Conduit.List as CL
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HM
+import           Data.List
 import           Data.Monoid ((<>))
 import           Data.Typeable
 import           Network.HTTP.Client.Conduit (requestBodySourceChunked)
@@ -80,6 +82,9 @@ data SourceConfig =
       -- ^ URL to pull from.
     , sourceConfigBlobs :: !(HashMap BlobKey Int)
       -- ^ The blobs to pull.
+    , sourceConfigMaxBlobsPerRequest :: !Int
+      -- ^ Maximum number of blobs per request; we split requests into
+      -- chunks of this number.
     }
 
 -- | Make a source of blobs from a URL. Throws 'PullException'.
@@ -88,28 +93,27 @@ blobsSource ::
   => SourceConfig
   -> ConduitT i (BlobKey, ByteString) m ()
 blobsSource sourceConfig = do
-  request <- makeRequest
-  source request .| conduit .|
+  skeletonRequest <- makeSkeletonRequest
+  source skeletonRequest (HM.toList (sourceConfigBlobs sourceConfig)) .| conduit .|
     consumer (HM.size (sourceConfigBlobs sourceConfig))
   where
-    makeRequest =
+    makeSkeletonRequest =
       fmap
-        (setRequestBodyLBS
-           (SB.toLazyByteString
-              (HM.foldlWithKey'
-                 (\a k v ->
-                    blobKeyToBuilder k <> SB.word64BE (fromIntegral v) <> a)
-                 mempty
-                 (sourceConfigBlobs sourceConfig))) .
-         setRequestMethod "POST")
+        (setRequestMethod "POST")
         (parseRequest (sourceConfigUrl sourceConfig))
-    source request =
-      httpSource
-        request
-        (\response ->
-           case getResponseStatus response of
-             Status 200 _ -> getResponseBody response
-             status -> throwM (BadHttpStatus status))
+    source skeletonRequest blobs =
+      unless
+        (null blobs)
+        (do httpSource
+              filledRequest
+              (\response ->
+                 case getResponseStatus response of
+                   Status 200 _ -> getResponseBody response
+                   status -> throwM (BadHttpStatus status))
+            source skeletonRequest remainingBlobs)
+      where
+        (filledRequest, remainingBlobs) =
+          setRequestBlobs sourceConfig blobs skeletonRequest
     conduit =
       conduitParserEither (blobKeyValueParser (sourceConfigBlobs sourceConfig))
     consumer remaining = do
@@ -125,6 +129,23 @@ blobsSource sourceConfig = do
             else do
               yield keyValue
               consumer (remaining - 1)
+
+-- | Fill the body of the request with max blobs per request.
+setRequestBlobs ::
+     SourceConfig -> [(BlobKey, Int)] -> Request -> (Request, [(BlobKey, Int)])
+setRequestBlobs sourceConfig blobs skeletonRequest = (request, remaining)
+  where
+    request =
+      setRequestBodyLBS
+        (SB.toLazyByteString
+           (foldl'
+              (\a (k, v) ->
+                 a <> (blobKeyToBuilder k <> SB.word64BE (fromIntegral v)))
+              mempty
+              thisBatch))
+        skeletonRequest
+    (thisBatch, remaining) =
+      splitAt (sourceConfigMaxBlobsPerRequest sourceConfig) blobs
 
 -- | Parser for a key/value.
 blobKeyValueParser :: HashMap BlobKey Int -> Atto.Parser (BlobKey, ByteString)
