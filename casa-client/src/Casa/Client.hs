@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -5,6 +6,7 @@
 
 module Casa.Client
   ( blobsSource
+  , SourceConfig(..)
   , blobsSink
   ) where
 
@@ -71,15 +73,24 @@ blobsSink url blobs = do
          setRequestMethod "POST")
         (parseRequest url)
 
+-- | Configuration for sourcing blobs from the server.
+data SourceConfig =
+  SourceConfig
+    { sourceConfigUrl :: !String
+      -- ^ URL to pull from.
+    , sourceConfigBlobs :: !(HashMap BlobKey Int)
+      -- ^ The blobs to pull.
+    }
+
 -- | Make a source of blobs from a URL. Throws 'PullException'.
 blobsSource ::
      (MonadThrow m, MonadResource m, MonadIO m)
-  => String
-  -> HashMap BlobKey Int
+  => SourceConfig
   -> ConduitT i (BlobKey, ByteString) m ()
-blobsSource url keyLengths = do
+blobsSource sourceConfig = do
   request <- makeRequest
-  source request .| conduit .| consumer (HM.size keyLengths)
+  source request .| conduit .|
+    consumer (HM.size (sourceConfigBlobs sourceConfig))
   where
     makeRequest =
       fmap
@@ -89,9 +100,9 @@ blobsSource url keyLengths = do
                  (\a k v ->
                     blobKeyToBuilder k <> SB.word64BE (fromIntegral v) <> a)
                  mempty
-                 keyLengths)) .
+                 (sourceConfigBlobs sourceConfig))) .
          setRequestMethod "POST")
-        (parseRequest url)
+        (parseRequest (sourceConfigUrl sourceConfig))
     source request =
       httpSource
         request
@@ -99,7 +110,8 @@ blobsSource url keyLengths = do
            case getResponseStatus response of
              Status 200 _ -> getResponseBody response
              status -> throwM (BadHttpStatus status))
-    conduit = conduitParserEither (blobKeyValueParser keyLengths)
+    conduit =
+      conduitParserEither (blobKeyValueParser (sourceConfigBlobs sourceConfig))
     consumer remaining = do
       mkeyValue <- await
       case mkeyValue of
@@ -107,7 +119,9 @@ blobsSource url keyLengths = do
         Just (Left x) -> throwM (AttoParseError x)
         Just (Right (_position, keyValue)) ->
           if remaining == 0
-            then throwM (TooManyReturnedKeys (HM.size keyLengths))
+            then throwM
+                   (TooManyReturnedKeys
+                      (HM.size (sourceConfigBlobs sourceConfig)))
             else do
               yield keyValue
               consumer (remaining - 1)
