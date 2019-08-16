@@ -5,7 +5,6 @@ cache:
   paths:
     - .stack-work/
     - .stack-root/
-    - static/combined/
 
 stages:
   - build
