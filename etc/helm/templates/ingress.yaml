@@ -1,6 +1,5 @@
 {{- if .Values.ingress.enabled -}}
 {{- $name := .Values.name -}}
-{{- $hoogleName := .Values.hoogleName -}}
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:

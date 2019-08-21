@@ -8,11 +8,11 @@ metadata:
 spec:
   type: {{ .Values.service.type }}
   ports:
-    - name: PORT
+    - name: port
       port: 80
       targetPort: {{ .Values.port }}
       protocol: TCP
-    - name: AUTHORIZED_PORT
+    - name: authorized-port
       port: {{ .Values.authorized_port }}
       targetPort: {{ .Values.authorized_port }}
       protocol: TCP
