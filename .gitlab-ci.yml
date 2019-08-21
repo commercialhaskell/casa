@@ -22,7 +22,7 @@ variables:
     kubectl config set-cluster cluster --server="$KUBE_URL" --certificate-authority="$HOME/ca.pem" &&
     kubectl config set-credentials cluster --token="$KUBE_TOKEN" && kubectl config set-context cluster --cluster=cluster --user=cluster --namespace="$KUBE_NAMESPACE" &&
     kubectl config use-context cluster
-  - &HELMUPGRADE helm --tiller-namespace ${KUBE_NAMESPACE} upgrade --install "${DEPLOYMENT_NAME}" etc/helm --set name="${DEPLOYMENT_NAME}" --set app="${DEPLOYMENT_APP}" --set image.image="${DEPLOYMENT_IMAGE}" --set authorized_port="${DEPLOYMENT_AUTHORIZED_PORT}" --set port="${DEPLOYMENT_PORT}" --values etc/helm/values/$CI_ENVIRONMENT_NAME.yaml --namespace ${KUBE_NAMESPACE}
+  - &HELMUPGRADE helm --tiller-namespace ${KUBE_NAMESPACE} upgrade --install --force "${DEPLOYMENT_NAME}" etc/helm --set name="${DEPLOYMENT_NAME}" --set app="${DEPLOYMENT_APP}" --set image.image="${DEPLOYMENT_IMAGE}" --set authorized_port="${DEPLOYMENT_AUTHORIZED_PORT}" --set port="${DEPLOYMENT_PORT}" --values etc/helm/values/$CI_ENVIRONMENT_NAME.yaml --namespace ${KUBE_NAMESPACE}
   - &HELMCHECK helm --tiller-namespace ${KUBE_NAMESPACE} ls &&
     helm --tiller-namespace ${KUBE_NAMESPACE} status "${DEPLOYMENT_NAME}"
 
