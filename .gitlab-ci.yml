@@ -8,7 +8,7 @@ cache:
 
 stages:
   - build
-  # - deploy
+  - deploy
 
 variables:
   STACK_ROOT: "${CI_PROJECT_DIR}/.stack-root"
