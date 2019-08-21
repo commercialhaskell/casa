@@ -57,6 +57,5 @@ deploy_ci:
     DEPLOYMENT_NAME: "casa-server-ci"
     HOST: ci.casa.org
   script:
-    - *KUBELOGIN
     - *HELMUPGRADE
     - *HELMCHECK
