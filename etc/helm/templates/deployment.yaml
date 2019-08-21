@@ -33,10 +33,22 @@ spec:
                   name: staging-casa-dbconn
                   key: PGCONN
           readinessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.port }}
             initialDelaySeconds: 5
             timeoutSeconds: 3
             periodSeconds: 5
             successThreshold: 1
+          livenessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.port }}
+            initialDelaySeconds: 120
+            timeoutSeconds: 3
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
           resources:
 {{ toYaml .Values.casaResources.resources | indent 12 }}
     {{- with .Values.nodeSelector }}
