@@ -1,0 +1,53 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ .Values.name }}
+spec:
+  replicas: {{ .Values.image.replicas }}
+  minReadySeconds: 30
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.app }}
+        release: {{ .Release.Name }}
+    spec:
+      imagePullSecrets:
+        - name: {{ .Values.registrySecretName }}
+      containers:
+        - name: casa-server
+          image: {{ .Values.image.image }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.port }}
+            - containerPort: {{ .Values.authorized_port }}
+          command: ["casa-server"]
+          workingDir: /app
+          env:
+            - name: PORT
+              value: {{ .Values.port | quote }}
+            - name: AUTHORIZED_PORT
+              value: {{ .Values.authorized_port | quote }}
+            - name: DBCONN
+              valueFrom:
+                secretKeyRef:
+                  name: staging-casa-dbconn
+                  key: PGCONN
+          readinessProbe:
+            initialDelaySeconds: 5
+            timeoutSeconds: 3
+            periodSeconds: 5
+            successThreshold: 1
+          resources:
+{{ toYaml .Values.casaResources.resources | indent 12 }}
+    {{- with .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}
