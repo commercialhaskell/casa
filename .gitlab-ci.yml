@@ -25,6 +25,8 @@ variables:
   - &HELMUPGRADE helm --tiller-namespace ${KUBE_NAMESPACE} upgrade --install "${DEPLOYMENT_NAME}" etc/helm --set name="${DEPLOYMENT_NAME}" --set app="${DEPLOYMENT_APP}" --set image.image="${DEPLOYMENT_IMAGE}" --set authorized_port="${DEPLOYMENT_AUTHORIZED_PORT}" --set port="${DEPLOYMENT_PORT}" --values etc/helm/values/$CI_ENVIRONMENT_NAME.yaml --namespace ${KUBE_NAMESPACE}
   - &HELMCHECK helm --tiller-namespace ${KUBE_NAMESPACE} ls &&
     helm --tiller-namespace ${KUBE_NAMESPACE} status "${DEPLOYMENT_NAME}"
+  - &HELMLIST echo ${KUBE_NAMESPACE} && helm list &&
+    helm --tiller-namespace ${KUBE_NAMESPACE} status "${DEPLOYMENT_NAME}"
 
 build:
   stage: build
@@ -57,5 +59,6 @@ deploy_ci:
     DEPLOYMENT_NAME: "casa-server-ci"
     HOST: ci.casa.org
   script:
+    - *HELMLIST
     - *HELMUPGRADE
     - *HELMCHECK
