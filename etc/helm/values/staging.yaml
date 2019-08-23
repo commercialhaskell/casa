@@ -4,10 +4,6 @@
 image:
   replicas: 1
 
-ingress:
-  hosts:
-    - {{ .Values.host-domain }}
-
 casaResources:
   resources:
     requests:
