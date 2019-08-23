@@ -51,11 +51,11 @@ deploy_ci:
     - ci
   environment:
     name: staging
-    url: https://${CI_HOST}/
+    url: "https://${CI_HOST}/"
   variables:
     KUBE_NAMESPACE: "fpco-public"
     DEPLOYMENT_NAME: "casa-server-ci"
-    HOST: ${CI_HOST}
+    HOST: "${CI_HOST}"
   script:
     - *HELMUPGRADE
     - *HELMCHECK
