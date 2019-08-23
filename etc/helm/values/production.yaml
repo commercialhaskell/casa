@@ -10,4 +10,4 @@ casaResources:
       cpu: 150m
       memory: 1.5Gi
 
-registrySecretName: registry-key
+registrySecretName: gitlab-ci-registrykey
