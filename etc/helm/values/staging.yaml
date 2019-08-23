@@ -1,0 +1,16 @@
+#name: casa-server-ci
+#app: casa-server-ci
+
+image:
+  replicas: 1
+
+casaResources:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 1.0Gi
+    limits:
+      cpu: 150m
+      memory: 1.5Gi
+
+registrySecretName: registry-key
