@@ -6,7 +6,7 @@ image:
 
 ingress:
   hosts:
-    - ci.casa.org
+    - {{ .Values.host-domain }}
 
 casaResources:
   resources:
