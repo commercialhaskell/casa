@@ -22,7 +22,7 @@ variables:
     kubectl config set-cluster cluster --server="$KUBE_URL" --certificate-authority="$HOME/ca.pem" &&
     kubectl config set-credentials cluster --token="$KUBE_TOKEN" && kubectl config set-context cluster --cluster=cluster --user=cluster --namespace="$KUBE_NAMESPACE" &&
     kubectl config use-context cluster
-  - &HELMUPGRADE helm --tiller-namespace ${KUBE_NAMESPACE} upgrade --install --force "${DEPLOYMENT_NAME}" etc/helm --set ingress.hosts[0]="${HOSTVAR}" --set name="${DEPLOYMENT_NAME}" --set app="${DEPLOYMENT_APP}" --set image.image="${DEPLOYMENT_IMAGE}" --set authorized_port="${DEPLOYMENT_AUTHORIZED_PORT}" --set port="${DEPLOYMENT_PORT}" --values etc/helm/values/$CI_ENVIRONMENT_NAME.yaml --namespace ${KUBE_NAMESPACE}
+  - &HELMUPGRADE helm --tiller-namespace ${KUBE_NAMESPACE} upgrade --install --force "${DEPLOYMENT_NAME}" etc/helm --set ingress.hosts[0]="${HOSTVAR}" --set envShortName="${ENV_SHORT_NAME}" --set name="${DEPLOYMENT_NAME}" --set app="${DEPLOYMENT_APP}" --set image.image="${DEPLOYMENT_IMAGE}" --set authorized_port="${DEPLOYMENT_AUTHORIZED_PORT}" --set port="${DEPLOYMENT_PORT}" --values etc/helm/values/$CI_ENVIRONMENT_NAME.yaml --namespace ${KUBE_NAMESPACE}
   - &HELMCHECK helm --tiller-namespace ${KUBE_NAMESPACE} ls &&
     helm --tiller-namespace ${KUBE_NAMESPACE} status "${DEPLOYMENT_NAME}"
 
@@ -56,6 +56,7 @@ deploy_prod:
     KUBE_NAMESPACE: "fpco-public"
     DEPLOYMENT_NAME: "casa-server-prod"
     HOSTVAR: "${HOST}"
+    ENV_SHORT_NAME: "prod"
   script:
     - export
       KUBE_CA_PEM="$PROD_V2_KUBE_CA_PEM"
@@ -77,6 +78,7 @@ deploy_ci:
     KUBE_NAMESPACE: "fpco-public"
     DEPLOYMENT_NAME: "casa-server-ci"
     HOSTVAR: "${CI_HOST}"
+    ENV_SHORT_NAME: "staging"
   script:
     - *HELMUPGRADE
     - *HELMCHECK

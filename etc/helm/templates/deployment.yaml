@@ -1,3 +1,4 @@
+{{- $secretName := printf "%s-casa-dbconn" .Values.envShortName -}}
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
@@ -30,7 +31,7 @@ spec:
             - name: DBCONN
               valueFrom:
                 secretKeyRef:
-                  name: staging-casa-dbconn
+                  name: {{ $secretName }}
                   key: PGCONN
           readinessProbe:
             httpGet:
