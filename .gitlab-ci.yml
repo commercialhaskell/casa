@@ -45,6 +45,27 @@ build:
         docker push "${CI_REGISTRY_IMAGE}:ci-cron"
       fi
 
+deploy_prod:
+  stage: deploy
+  only:
+    - master
+  environment:
+    name: production
+    url: "https://{HOST}/"
+  variables:
+    KUBE_NAMESPACE: "fpco-public"
+    DEPLOYMENT_NAME: "casa-server-prod"
+    HOSTVAR: "${HOST}"
+  script:
+    - export
+      KUBE_CA_PEM="$PROD_V2_KUBE_CA_PEM"
+      KUBE_URL="$PROD_V2_KUBE_URL"
+      KUBE_TOKEN="$PROD_V2_KUBE_TOKEN"
+      KUBE_NAMESPACE="$PROD_V2_KUBE_NAMESPACE"
+    - *KUBELOGIN
+    - *HELMUPGRADE
+    - *HELMCHECK
+
 deploy_ci:
   stage: deploy
   only:
