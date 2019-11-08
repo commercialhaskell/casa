@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveLift #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -10,6 +11,7 @@ module Casa.Client
   , blobsSink
   , CasaRepoPrefix
   , parseCasaRepoPrefix
+  , thParserCasaRepo
   ) where
 
 import           Casa.Types
@@ -34,6 +36,8 @@ import qualified Data.HashMap.Strict as HM
 import           Data.List
 import           Data.Monoid ((<>))
 import           Data.Typeable
+import           Language.Haskell.TH
+import           Language.Haskell.TH.Lift
 import           Network.HTTP.Client.Conduit (requestBodySourceChunked)
 import           Network.HTTP.Simple
 import           Network.HTTP.Types
@@ -58,11 +62,15 @@ instance Exception PushException
 -- Parsers will strip out a trailing slash.
 newtype CasaRepoPrefix =
   CasaRepoPrefix String
-  deriving (Show)
+  deriving (Show, Lift)
 instance FromJSON CasaRepoPrefix where
   parseJSON j = do
     s <- parseJSON j
     either fail pure (parseCasaRepoPrefix s)
+
+-- | TH compile-time parser.
+thParserCasaRepo :: String -> Q Exp
+thParserCasaRepo = either error lift . parseCasaRepoPrefix
 
 -- | Parse and normalize a Casa repo prefix.
 parseCasaRepoPrefix :: String -> Either String CasaRepoPrefix

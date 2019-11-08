@@ -29,3 +29,5 @@ library
     , memory
     , network-uri
     , aeson
+    , th-lift
+    , template-haskell
