@@ -8,7 +8,7 @@ Syntax is https://www.postgresql.org/docs/9.3/libpq-connect.html#AEN39681
 
 # Testing with sqlite
 
-DBCONN="host='localhost' port=6432 user=postgres password=password" stack test --file-watch --flag casa-server:sqlite --flag casa-server:-postgresql
+    $ DBCONN=".stack-work/test.sqlite" stack test --file-watch --flag casa-server:sqlite --flag casa-server:-postgresql
 
 # Testing with postgres
 
