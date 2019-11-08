@@ -27,3 +27,5 @@ library
     , unliftio-core
     , cryptonite
     , memory
+    , network-uri
+    , aeson

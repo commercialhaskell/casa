@@ -8,6 +8,8 @@ module Casa.Client
   ( blobsSource
   , SourceConfig(..)
   , blobsSink
+  , CasaRepoPrefix
+  , parseCasaRepoPrefix
   ) where
 
 import           Casa.Types
@@ -17,6 +19,7 @@ import           Control.Monad.IO.Class
 import           Control.Monad.IO.Unlift
 import           Control.Monad.Trans.Resource
 import qualified Crypto.Hash as Crypto
+import           Data.Aeson
 import qualified Data.Attoparsec.ByteString as Atto
 import qualified Data.ByteArray as Mem
 import           Data.ByteString (ByteString)
@@ -34,6 +37,7 @@ import           Data.Typeable
 import           Network.HTTP.Client.Conduit (requestBodySourceChunked)
 import           Network.HTTP.Simple
 import           Network.HTTP.Types
+import           Network.URI
 
 -- | An exception from blob consuming/sending.
 data PullException
@@ -49,13 +53,47 @@ data PushException
   deriving (Show, Typeable)
 instance Exception PushException
 
+-- | The URL prefix for a casa repo.
+-- Commonly: @https://casa.fpcomplete.com@
+-- Parsers will strip out a trailing slash.
+newtype CasaRepoPrefix =
+  CasaRepoPrefix String
+  deriving (Show)
+instance FromJSON CasaRepoPrefix where
+  parseJSON j = do
+    s <- parseJSON j
+    either fail pure (parseCasaRepoPrefix s)
+
+-- | Parse and normalize a Casa repo prefix.
+parseCasaRepoPrefix :: String -> Either String CasaRepoPrefix
+parseCasaRepoPrefix s =
+  case parseURI s of
+    Nothing ->
+      Left
+        "Invalid URI for repo. Should be a valid URI e.g. https://casa.fpcomplete.com"
+    Just {} -> pure (CasaRepoPrefix (stripTrailing s))
+  where
+    stripTrailing = reverse . dropWhile (== '/') . reverse
+
+-- | Used to build request paths.
+casaServerVersion :: String
+casaServerVersion = "v1"
+
+-- | Build the URL from a repo prefix.
+casaRepoPushUrl :: CasaRepoPrefix -> String
+casaRepoPushUrl (CasaRepoPrefix uri) = uri ++ "/" ++ casaServerVersion ++ "/push"
+
+-- | Build the URL from a repo prefix.
+casaRepoPullUrl :: CasaRepoPrefix -> String
+casaRepoPullUrl (CasaRepoPrefix uri) = uri ++ "/" ++ casaServerVersion ++ "/pull"
+
 -- | A sink to push blobs to the server. Throws 'PushException'.
 blobsSink ::
      (MonadIO m, MonadThrow m, MonadUnliftIO m)
-  => String
+  => CasaRepoPrefix
   -> ConduitT () ByteString m ()
   -> m ()
-blobsSink url blobs = do
+blobsSink casaRepoUrl blobs = do
   runInIO <- askUnliftIO
   request <- makeRequest runInIO
   response <- httpNoBody request
@@ -73,12 +111,12 @@ blobsSink url blobs = do
                     SB.word64BE (fromIntegral (S.length v)) <> SB.byteString v) .|
                builderToByteString)) .
          setRequestMethod "POST")
-        (parseRequest url)
+        (parseRequest (casaRepoPushUrl casaRepoUrl))
 
 -- | Configuration for sourcing blobs from the server.
 data SourceConfig =
   SourceConfig
-    { sourceConfigUrl :: !String
+    { sourceConfigUrl :: !CasaRepoPrefix
       -- ^ URL to pull from.
     , sourceConfigBlobs :: !(HashMap BlobKey Int)
       -- ^ The blobs to pull.
@@ -100,7 +138,7 @@ blobsSource sourceConfig = do
     makeSkeletonRequest =
       fmap
         (setRequestMethod "POST")
-        (parseRequest (sourceConfigUrl sourceConfig))
+        (parseRequest (casaRepoPullUrl (sourceConfigUrl sourceConfig)))
     source skeletonRequest blobs =
       unless
         (null blobs)

@@ -104,12 +104,14 @@ integrationSpec = do
                              , appLogging = False
                              , appPool = pool
                              })))
+              repo <-
+                either
+                  error
+                  pure
+                  (parseCasaRepoPrefix ("http://localhost:" ++ show port))
               withAsync
                 runner
-                (const
-                   (blobsSink
-                      ("http://localhost:" ++ show port ++ "/v1/push")
-                      (CL.sourceList ["Hello!", "World!"]))))
+                (const (blobsSink repo (CL.sourceList ["Hello!", "World!"]))))
           ()))
   describe
     "Pull"
@@ -128,15 +130,18 @@ integrationSpec = do
                                , appLogging = False
                                , appPool = pool
                                })))
+                repo <-
+                  either
+                    error
+                    pure
+                    (parseCasaRepoPrefix ("http://localhost:" ++ show port))
                 withAsync
                   runner
                   (const
                      (runConduitRes
                         (blobsSource
                            (SourceConfig
-                              { sourceConfigUrl =
-                                  ("http://localhost:" ++
-                                   show port ++ "/v1/pull")
+                              { sourceConfigUrl = repo
                               , sourceConfigBlobs =
                                   (HM.fromList
                                      [ ( partialKey
