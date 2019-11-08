@@ -3,7 +3,49 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages: []
+packages:
+- completed:
+    hackage: hi-file-parser-0.1.0.0@sha256:3fc95852035c8e0fa6d5f9d22e5108067c8f4816ac84675bddc971b20144a9ae,2317
+    pantry-tree:
+      size: 1182
+      sha256: 8f31d05d60613600b07ad07a9dd203c1495d82903592134d2828b125282d7fb1
+  original:
+    hackage: hi-file-parser-0.1.0.0@sha256:3fc95852035c8e0fa6d5f9d22e5108067c8f4816ac84675bddc971b20144a9ae,2317
+- completed:
+    hackage: http-download-0.1.0.0@sha256:b02d76d28364b74fb90d3ec3c46fd81f9d77bcf71fa40c1d341a7251a0fc40e8,2023
+    pantry-tree:
+      size: 393
+      sha256: 5ca9a5f17b87de5feea9eb26939bf0dea1ef20b9570545feb0b9e54f41ea47ff
+  original:
+    hackage: http-download-0.1.0.0@sha256:b02d76d28364b74fb90d3ec3c46fd81f9d77bcf71fa40c1d341a7251a0fc40e8,2023
+- completed:
+    hackage: rio-prettyprint-0.1.0.0@sha256:764e1a357275c3c62d57c494d038feae01cf745788e7d0e97367ba793c9670c3,1359
+    pantry-tree:
+      size: 479
+      sha256: 42fad9af672080b144bb60eb91af251ab35ce41bb931c44cfb584414648935e5
+  original:
+    hackage: rio-prettyprint-0.1.0.0@sha256:764e1a357275c3c62d57c494d038feae01cf745788e7d0e97367ba793c9670c3,1359
+- completed:
+    hackage: unliftio-0.2.12@sha256:b089fbc2ff2628a963c2c4b12143f2020874e3e5144ffd6c62b25639a0ca1483,3325
+    pantry-tree:
+      size: 2229
+      sha256: 4971b43f3d473eff868eb1a0c359729b49f1779e78c462ba45ef0d1eda677699
+  original:
+    hackage: unliftio-0.2.12@sha256:b089fbc2ff2628a963c2c4b12143f2020874e3e5144ffd6c62b25639a0ca1483,3325
+- completed:
+    hackage: rio-0.1.12.0@sha256:a0b42682a455ffde6a4d894b135117e379aea7ed1810c2cfed471b8f5879968c,3633
+    pantry-tree:
+      size: 4745
+      sha256: 340566441c9d1087f661fb51f95a080ffdf2da8fce6b4b8f86f158f4195894f5
+  original:
+    hackage: rio-0.1.12.0@sha256:a0b42682a455ffde6a4d894b135117e379aea7ed1810c2cfed471b8f5879968c,3633
+- completed:
+    hackage: ansi-terminal-0.9@sha256:24e357bccd882add0d9caee63136d6b7923aaa9e36ed515097230dca82b0065c,3154
+    pantry-tree:
+      size: 1386
+      sha256: ba8e708bbeb1d2d277f40d09627e91cc597b08334b63936c661263c18108d008
+  original:
+    hackage: ansi-terminal-0.9@sha256:24e357bccd882add0d9caee63136d6b7923aaa9e36ed515097230dca82b0065c,3154
 snapshots:
 - completed:
     size: 500539
