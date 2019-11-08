@@ -6,6 +6,7 @@
 -- | Existential tests.
 module Main where
 
+import           Casa.Backend
 import           Casa.Client
 import           Casa.Server
 import           Casa.Types
@@ -20,7 +21,6 @@ import qualified Data.Conduit.List as CL
 import qualified Data.HashMap.Strict as HM
 import           Data.Pool
 import           Data.Text (Text)
-import           Database.Persist.Postgresql
 import qualified Network.BSD as Network
 import qualified Network.Socket as Network
 import qualified Network.Wai.Handler.Warp as Warp

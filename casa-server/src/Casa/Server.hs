@@ -27,6 +27,7 @@ module Casa.Server
   , ContentId
   ) where
 
+import           Casa.Backend
 import           Casa.Types
 import           Control.Applicative
 import           Control.Monad.Logger
@@ -52,7 +53,6 @@ import qualified Data.Text as T
 import           Data.Time
 import           Data.Word
 import qualified Database.Esqueleto as E
-import           Database.Persist.Postgresql
 import           System.Environment
 import           Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
@@ -92,7 +92,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 Content
   key BlobKey
   blob ByteString
-  created UTCTime default=now()
+  created UTCTime default=CURRENT_TIMESTAMP
   Unique BlobUniqueKey key
 |]
 
@@ -311,7 +311,7 @@ withDBPool cont = do
   runStdoutLoggingT
     (filterLogger
        (\_src _lvl -> False)
-       (withPostgresqlPool (S8.pack dbstr) 10 cont))
+       (withBackendPool (S8.pack dbstr) 10 cont))
 
 --------------------------------------------------------------------------------
 -- Hashing

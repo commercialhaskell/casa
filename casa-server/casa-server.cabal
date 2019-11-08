@@ -3,13 +3,30 @@ name:           casa-server
 version:        0.0.0
 build-type:     Simple
 
+flag postgresql
+  description: Use postgres for storage
+  manual: True
+  default: True
+
+flag sqlite
+  description: Use sqlite for storage
+  manual: True
+  default: False
+
 library
   exposed-modules:
     Casa.Server
+    Casa.Backend
   other-modules: Paths_casa_server
   hs-source-dirs: src
   default-language: Haskell2010
   ghc-options: -Wall
+  if flag(postgresql)
+    hs-source-dirs: src src/postgresql
+    build-depends: persistent-postgresql
+  if flag(sqlite)
+    hs-source-dirs: src src/sqlite
+    build-depends: persistent-sqlite
   build-depends:
       base
     , yesod
@@ -27,7 +44,6 @@ library
     , attoparsec-binary
     , persistent
     , resource-pool
-    , persistent-postgresql
     , monad-logger
     , esqueleto
     , cryptonite
@@ -40,10 +56,12 @@ executable casa-server
   hs-source-dirs: app
   ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall
   default-language: Haskell2010
+  if flag(postgresql)
+    build-depends: persistent-postgresql
+  if flag(sqlite)
+    build-depends: persistent-sqlite
   build-depends: base, yesod, casa-server
-      , persistent-postgresql
-      , bytestring
-    , persistent-postgresql
+    , bytestring
     , resource-pool
     , transformers
     , async
@@ -56,6 +74,10 @@ test-suite casa-existential-test
   hs-source-dirs: test
   ghc-options: -Wall -O0
   default-language: Haskell2010
+  if flag(postgresql)
+    build-depends: persistent-postgresql
+  if flag(sqlite)
+    build-depends: persistent-sqlite
   build-depends:
       base
     , casa-server
@@ -73,7 +95,6 @@ test-suite casa-existential-test
     , network-bsd
     , unordered-containers
     , casa-client
-    , persistent-postgresql
     , resource-pool
     , transformers
     , unliftio-core

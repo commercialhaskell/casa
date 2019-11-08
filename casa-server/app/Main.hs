@@ -9,7 +9,7 @@ import Control.Concurrent.Async
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Reader
 import Data.Pool
-import Database.Persist.Postgresql
+import Casa.Backend
 import System.Environment
 import Yesod
 import Network.Wai.Handler.Warp (run)
