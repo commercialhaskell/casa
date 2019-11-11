@@ -24,7 +24,6 @@ import           Data.Conduit.Attoparsec
 import           Data.Conduit.ByteString.Builder
 import qualified Data.Conduit.List as CL
 import qualified Data.HashMap.Strict as HM
-import           Data.List
 import qualified Data.Map.Strict as M
 import           Data.Pool
 import           Data.Text (Text)
@@ -33,6 +32,10 @@ import qualified Data.Text.Encoding as T
 import           Data.Time
 import qualified Data.UUID as UUID
 import qualified Data.UUID.V4 as UUID
+import qualified Distribution.License as Cabal
+import qualified Distribution.PackageDescription as Cabal
+import qualified Distribution.PackageDescription.PrettyPrint as Cabal
+import qualified Distribution.Types.GenericPackageDescription as Cabal
 import qualified Distribution.Types.PackageId as Cabal
 import qualified Distribution.Version as Cabal
 import qualified Network.BSD as Network
@@ -41,7 +44,7 @@ import qualified Network.Wai.Handler.Warp as Warp
 import qualified Pantry as Pantry
 import qualified Pantry.Internal as Pantry
 import qualified Pantry.SHA256 as Pantry
-import           RIO hiding (bracketOnError, withAsync, race_)
+import           RIO hiding (bracketOnError, withAsync, race)
 import           RIO.PrettyPrint.StylesUpdate
 import           RIO.Process
 import qualified Stack.Build.Target
@@ -204,6 +207,7 @@ data FabricatedPackage = FabricatedPackage
   , cabalFileBlobKey :: Pantry.BlobKey
   , packageTree :: Pantry.Tree
   , treeKey :: Pantry.TreeKey
+  , genericPackageDescription :: Cabal.GenericPackageDescription
   }
 
 stackSpec :: Spec
@@ -214,13 +218,21 @@ stackSpec =
        "Spin up a server with one package in it, pull the package with Stack"
        stackPullTest)
 
+-- | Check that running a Casa server with a randomly-generated
+-- package in it, and downloading it with Stack works correctly.
 stackPullTest :: IO ()
 stackPullTest = do
-  fabricated@FabricatedPackage {packageLocationImmutable} <-
+  fabricated@FabricatedPackage {packageLocationImmutable, treeKey, genericPackageDescription} <-
     fmap makePackageLocationImmutable UUID.nextRandom
   (port, runWebServer) <- makeRunCasaForStack fabricated
-  race_ runWebServer (runStackAgainstOurCasa port packageLocationImmutable)
+  result <-
+    race runWebServer (runStackAgainstOurCasa port packageLocationImmutable)
+  shouldBe
+    (fmap (second Pantry.packageTreeKey) result)
+    (Right (genericPackageDescription, treeKey))
 
+-- | Make a local, ephemeral, Casa deploy with a single fabricated
+-- package inside it.
 makeRunCasaForStack :: FabricatedPackage -> IO (Int, IO ())
 makeRunCasaForStack FabricatedPackage { cabalFileBlobKey = Pantry.BlobKey cabalFileSha256 _
                                       , cabalFileBytes
@@ -256,7 +268,11 @@ makeRunCasaForStack FabricatedPackage { cabalFileBlobKey = Pantry.BlobKey cabalF
                   , appPool = pool
                   })))
 
-runStackAgainstOurCasa :: Int -> Pantry.PackageLocationImmutable -> IO ()
+-- | Run Stack and load the package against the local Casa server.
+runStackAgainstOurCasa ::
+     Int
+  -> Pantry.PackageLocationImmutable
+  -> IO (Cabal.GenericPackageDescription, Pantry.Package)
 runStackAgainstOurCasa port packageLocationImmutable = do
   case parseCasaRepoPrefix ("http://localhost:" <> show port) of
     Left err -> error ("Casa repo parse error: " ++ err)
@@ -282,10 +298,8 @@ runStackAgainstOurCasa port packageLocationImmutable = do
                          (do cabalDesc <-
                                Pantry.loadCabalFileImmutable
                                  packageLocationImmutable
-                             RIO.logInfo (fromString (show cabalDesc))
-                             package <-
-                               Pantry.loadPackage packageLocationImmutable
-                             RIO.logInfo (fromString (show package)))))))
+                             package <- Pantry.loadPackage packageLocationImmutable
+                             pure (cabalDesc, package))))))
   where
     runnerGlobalOpts casaRepoPrefix =
       Stack.Types.Config.GlobalOpts
@@ -302,7 +316,9 @@ runStackAgainstOurCasa port packageLocationImmutable = do
             Just
               (Stack.Types.Resolver.ARResolver
                  (Pantry.ltsSnapshotLocation 13 28))
-                 -- This matches the lts-13.28 currently used by stack.
+                 -- This matches the lts-13.28 currently used by
+                 -- stack.  It's not particularly important, as our
+                 -- test crosses snapshot boundaries.
         , globalCompiler = Nothing
         , globalTerminal = False
         , globalStylesUpdate = StylesUpdate []
@@ -311,6 +327,7 @@ runStackAgainstOurCasa port packageLocationImmutable = do
         , globalLockFileBehavior = Stack.Types.Config.LFBIgnore
         }
 
+-- | Make a fake package.
 makePackageLocationImmutable :: UUID.UUID -> FabricatedPackage
 makePackageLocationImmutable uuid =
   FabricatedPackage
@@ -319,13 +336,11 @@ makePackageLocationImmutable uuid =
     , cabalFileBlobKey
     , packageTree
     , treeKey
+    , genericPackageDescription
     }
   where
     packageLocationImmutable =
-      Pantry.PLIHackage
-        (Cabal.PackageIdentifier {pkgName = fromString pkgName, pkgVersion})
-        cabalFileBlobKey
-        treeKey
+      Pantry.PLIHackage cabalPackageIdentifier cabalFileBlobKey treeKey
     cabalFilePath =
       case Pantry.mkSafeFilePath (fromString pkgName <> ".cabal") of
         Nothing ->
@@ -349,15 +364,18 @@ makePackageLocationImmutable uuid =
            ])
     cabalFileBytes =
       T.encodeUtf8
-        (T.unlines
-           [ "name: " <> fromString pkgName
-           , "version: " <>
-             fromString
-               (intercalate "." (map show (Cabal.versionNumbers pkgVersion)))
-           , "build-type: Simple"
-           , "cabal-version: >= 1.2"
-           , "library"
-           ])
+        (T.pack (Cabal.showGenericPackageDescription genericPackageDescription))
+    cabalPackageIdentifier =
+      Cabal.PackageIdentifier {pkgName = fromString pkgName, pkgVersion}
+    genericPackageDescription =
+      Cabal.emptyGenericPackageDescription
+        { Cabal.packageDescription =
+            Cabal.emptyPackageDescription
+              { Cabal.package = cabalPackageIdentifier
+              , Cabal.licenseRaw =
+                  Right (Cabal.UnknownLicense "UnspecifiedLicense")
+              }
+        }
     cabalFileBlobKey =
       Pantry.BlobKey
         (Pantry.hashBytes cabalFileBytes)
