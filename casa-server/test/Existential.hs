@@ -283,7 +283,8 @@ runStackAgainstOurCasa port packageLocationImmutable = do
                                Pantry.loadCabalFileImmutable
                                  packageLocationImmutable
                              RIO.logInfo (fromString (show cabalDesc))
-                             package <- Pantry.loadPackage packageLocationImmutable
+                             package <-
+                               Pantry.loadPackage packageLocationImmutable
                              RIO.logInfo (fromString (show package)))))))
   where
     runnerGlobalOpts casaRepoPrefix =
@@ -297,7 +298,11 @@ runStackAgainstOurCasa port packageLocationImmutable = do
               { Stack.Types.Config.configMonoidCasaRepoPrefix =
                   pure casaRepoPrefix
               }
-        , globalResolver = Just Stack.Types.Resolver.ARGlobal
+        , globalResolver =
+            Just
+              (Stack.Types.Resolver.ARResolver
+                 (Pantry.ltsSnapshotLocation 13 28))
+                 -- This matches the lts-13.28 currently used by stack.
         , globalCompiler = Nothing
         , globalTerminal = False
         , globalStylesUpdate = StylesUpdate []
