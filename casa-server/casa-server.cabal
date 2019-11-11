@@ -107,6 +107,7 @@ test-suite casa-existential-test
     , pantry
     , containers
     , uuid
+    , time
 
   build-depends: network     >= 2.7 && < 3.1
                  , network-bsd >= 2.7 && < 2.9

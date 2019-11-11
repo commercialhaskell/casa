@@ -1,4 +1,5 @@
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NamedFieldPuns #-}
@@ -235,6 +236,7 @@ postPushR = do
 postPullR :: Handler TypedContent
 postPullR = do
   keyLenPairs <- keyLenPairsFromBody
+  liftIO (putStrLn ("CASA-SERVER: Pull keys request: " <> show keyLenPairs))
   let keys = fmap fst keyLenPairs
       source =
         E.selectSource
@@ -250,7 +252,7 @@ postPullR = do
     "application/octet-stream"
     (source .|
      CL.concatMap
-       (\(E.Value blobKey,E.Value blob) ->
+       (\(E.Value blobKey, E.Value blob) ->
           [ Chunk (blobKeyToBuilder blobKey <> SB.byteString blob)
           , Flush -- Do we want to flush after every blob?
           ]))
