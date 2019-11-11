@@ -7,7 +7,7 @@ packages:
 # Required for stack
 extra-deps:
 - github: commercialhaskell/stack
-  commit: 4d1078f3e8770f91d78e64b9792a880b90144b32
+  commit: a3bcd98a281762f8d063fcb72cc1ee6bae9ff5f3
 - github: commercialhaskell/pantry
   commit: 3950d5a08a358194f05c5cef4e5209715948ce65
 - hi-file-parser-0.1.0.0@sha256:3fc95852035c8e0fa6d5f9d22e5108067c8f4816ac84675bddc971b20144a9ae,2317
