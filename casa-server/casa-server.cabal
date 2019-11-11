@@ -98,7 +98,15 @@ test-suite casa-existential-test
     , resource-pool
     , transformers
     , unliftio-core
+
+    -- For stack
     , stack
+    , rio
+    , rio-prettyprint
+    , Cabal
+    , pantry
+    , containers
+    , uuid
 
   build-depends: network     >= 2.7 && < 3.1
                  , network-bsd >= 2.7 && < 2.9

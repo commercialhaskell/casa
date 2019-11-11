@@ -1,4 +1,8 @@
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE Strict #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE DisambiguateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# OPTIONS_GHC -fno-warn-deprecations #-}
@@ -13,17 +17,38 @@ import           Casa.Types
 import           Control.Concurrent.Async
 import           Control.Exception
 import           Control.Monad.Trans.Reader
+import qualified Data.ByteString as S
 import qualified Data.ByteString.Builder as SB
 import           Data.Conduit
 import           Data.Conduit.Attoparsec
 import           Data.Conduit.ByteString.Builder
 import qualified Data.Conduit.List as CL
 import qualified Data.HashMap.Strict as HM
+import qualified Data.Map.Strict as M
 import           Data.Pool
 import           Data.Text (Text)
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
+import qualified Data.UUID.V4 as UUID
+import qualified Data.UUID as UUID
+import qualified Distribution.Types.PackageId as Cabal
+import qualified Distribution.Version as Cabal
 import qualified Network.BSD as Network
 import qualified Network.Socket as Network
 import qualified Network.Wai.Handler.Warp as Warp
+import qualified Pantry as Pantry
+import qualified Pantry.Internal as Pantry
+import qualified Pantry.SHA256 as Pantry
+import           RIO hiding (bracketOnError, withAsync, race_)
+import           RIO.PrettyPrint.StylesUpdate
+import           RIO.Process
+import qualified Stack.Build
+import qualified Stack.Build.Target
+import qualified Stack.Config
+import qualified Stack.Runners
+import qualified Stack.Types.Config
+import qualified Stack.Types.Config.Build
+import qualified Stack.Types.Resolver
 import           Test.Hspec
 import           Yesod
 
@@ -37,6 +62,7 @@ spec :: SpecWith ()
 spec = do
   inputSpec
   integrationSpec
+  stackSpec
 
 inputSpec :: SpecWith ()
 inputSpec =
@@ -164,6 +190,135 @@ integrationSpec = do
                ]))
        | maxPerRequest <- [1 .. 3]
        ])
+
+--------------------------------------------------------------------------------
+-- Tests for Stack
+--
+-- We're currently testing stack against Casa, rather than vice-versa,
+-- until Stack's snapshot is brought forward.
+
+stackSpec :: Spec
+stackSpec =
+  describe
+    "Stack"
+    (it
+       "Spin up a server with one package in it, pull the package with Stack"
+       stackPullTest)
+
+stackPullTest :: IO ()
+stackPullTest = do
+  packageLocationImmutable <- fmap makePackageLocationImmutable UUID.nextRandom
+  (port, runWebServer) <-
+    withDBPool
+      (\pool ->
+         liftIO
+           (runWarpOnFreePort
+              (App
+                 { appAuthorized = Unauthorized "Not needed in this test"
+                 , appLogging = False
+                 , appPool = pool
+                 })))
+  race_ runWebServer (runStackAgainstOurCasa port packageLocationImmutable)
+
+makePackageLocationImmutable :: UUID.UUID -> Pantry.PackageLocationImmutable
+makePackageLocationImmutable uuid =
+  Pantry.PLIHackage
+    (Cabal.PackageIdentifier
+       {pkgName = fromString pkgName, pkgVersion = Cabal.mkVersion [0]})
+    blobKey
+    treeKey
+  where
+    cabalFilePath =
+      case Pantry.mkSafeFilePath (fromString pkgName <> ".cabal") of
+        Nothing -> error ("makePackageLocationImmutable: Invalid file path. This is unexpected!")
+        Just fp -> fp
+    pkgName = "dummy" <> filter (/='-') (UUID.toString uuid)
+    treeKey =
+      Pantry.TreeKey
+        (Pantry.BlobKey
+           (Pantry.hashBytes treeRendered)
+           (Pantry.FileSize (fromIntegral (S.length treeRendered))))
+    treeRendered = Pantry.renderTree tree
+    tree =
+      Pantry.TreeMap
+        (M.fromList
+           [ ( cabalFilePath
+             , Pantry.TreeEntry
+                 {teBlob = cabalFileKey, teType = Pantry.FTNormal})
+           ])
+    cabalFile =
+      T.encodeUtf8
+        (T.concat
+           [ "name: " <> fromString pkgName
+           , "version: 1.0.0"
+           , "build-type: Simple"
+           , "cabal-version: >= 1.2"
+           , "library"
+           ])
+    cabalFileKey =
+      Pantry.BlobKey
+        (Pantry.hashBytes cabalFile)
+        (Pantry.FileSize (fromIntegral (S.length cabalFile)))
+    blobKey = cabalFileKey
+
+runStackAgainstOurCasa :: Int -> Pantry.PackageLocationImmutable -> IO ()
+runStackAgainstOurCasa port pli = do
+  _runner <- makeRunner port pli
+  pure ()
+
+makeRunner :: Int -> Pantry.PackageLocationImmutable -> IO ()
+makeRunner port packageLocationImmutable = do
+  case parseCasaRepoPrefix ("http://localhost:" <> show port) of
+    Left err -> error ("Casa repo parse error: " ++ err)
+    Right casaRepoPrefix ->
+      runSimpleApp
+        (do runnerLogFunc <- RIO.asks (view logFuncL)
+            runnerProcessContext <- RIO.asks (view processContextL)
+            runRIO
+              (Stack.Types.Config.Runner
+                 { runnerGlobalOpts = runnerGlobalOpts casaRepoPrefix
+                 , runnerUseColor = False
+                 , runnerLogFunc
+                 , runnerTermWidth = 80
+                 , runnerProcessContext
+                 })
+              (Stack.Config.loadConfig
+                 (\config ->
+                    runRIO
+                      config
+                      (Stack.Runners.withEnvConfig
+                         Stack.Build.Target.AllowNoTargets
+                         Stack.Types.Config.Build.defaultBuildOptsCLI
+                         (do let ghcOptions = []
+                                 cabalConfigureOptions = []
+                                 flags = mempty
+                             package <-
+                               Stack.Build.loadPackage
+                                 packageLocationImmutable
+                                 flags
+                                 ghcOptions
+                                 cabalConfigureOptions
+                             RIO.logInfo (fromString (show package)))))))
+  where
+    runnerGlobalOpts casaRepoPrefix =
+      Stack.Types.Config.GlobalOpts
+        { globalReExecVersion = Nothing
+        , globalDockerEntrypoint = Nothing
+        , globalLogLevel = RIO.LevelInfo
+        , globalTimeInLog = False
+        , globalConfigMonoid =
+            mempty
+              { Stack.Types.Config.configMonoidCasaRepoPrefix =
+                  pure casaRepoPrefix
+              }
+        , globalResolver = Just Stack.Types.Resolver.ARGlobal
+        , globalCompiler = Nothing
+        , globalTerminal = False
+        , globalStylesUpdate = StylesUpdate []
+        , globalTermWidth = Nothing
+        , globalStackYaml = Stack.Types.Config.SYLNoProject []
+        , globalLockFileBehavior = Stack.Types.Config.LFBIgnore
+        }
 
 --------------------------------------------------------------------------------
 -- Supplementary
