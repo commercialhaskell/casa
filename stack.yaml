@@ -9,7 +9,7 @@ extra-deps:
 - github: commercialhaskell/stack
   commit: a3bcd98a281762f8d063fcb72cc1ee6bae9ff5f3
 - github: commercialhaskell/pantry
-  commit: 3950d5a08a358194f05c5cef4e5209715948ce65
+  commit: de8a0b5f88e9974fafb4a6ed5835d1da8f821d80
 - hi-file-parser-0.1.0.0@sha256:3fc95852035c8e0fa6d5f9d22e5108067c8f4816ac84675bddc971b20144a9ae,2317
 - http-download-0.1.0.0@sha256:b02d76d28364b74fb90d3ec3c46fd81f9d77bcf71fa40c1d341a7251a0fc40e8,2023
 - rio-prettyprint-0.1.0.0@sha256:764e1a357275c3c62d57c494d038feae01cf745788e7d0e97367ba793c9670c3,1359
