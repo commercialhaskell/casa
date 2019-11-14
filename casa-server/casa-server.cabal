@@ -50,6 +50,7 @@ library
     , memory
     , time
     , blaze-html
+    , wai
 
 executable casa-server
   main-is: Main.hs
@@ -67,6 +68,7 @@ executable casa-server
     , async
     , wai-extra
     , warp
+    , wai
 
 test-suite casa-existential-test
   type: exitcode-stdio-1.0
