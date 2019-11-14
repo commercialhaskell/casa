@@ -51,9 +51,11 @@ import qualified Data.List.NonEmpty as NE
 import           Data.Maybe
 import           Data.Pool
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
 import           Data.Time
 import           Data.Word
 import qualified Database.Esqueleto as E
+import           Network.Wai
 import           System.Environment
 import           Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
@@ -148,6 +150,7 @@ getHomeR = do
   totals <-
     runDB
       (E.select (E.from (\content -> pure (E.count (content E.^. ContentId)))))
+  request <- getRequest
   pure
     (H.html
        (do H.head
@@ -173,7 +176,15 @@ getHomeR = do
                  H.p
                    (do "A service provided by "
                        H.a ! A.href "https://www.fpcomplete.com/" $
-                         "FP Complete"))))
+                         "FP Complete")
+                 H.p
+                   (H.small
+                      (do "Request host: "
+                          H.code
+                            (maybe
+                               "None given"
+                               (toHtml . T.decodeUtf8)
+                               (requestHeaderHost (reqWaiRequest request))))))))
 
 -- | Get a single blob in a web interface.
 getMetadataR :: BlobKey -> Handler Value
