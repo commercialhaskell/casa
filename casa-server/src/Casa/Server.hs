@@ -229,7 +229,7 @@ getStatsR = do
                                              (H.toValue
                                                 (renderer
                                                    (MetadataR (accessLogKey log)))) $
-                                           toHtml (show (accessLogKey log)))
+                                           toHtml (toPathPiece (accessLogKey log)))
                                         H.td
                                           (toHtml (show (accessLogCount log)))
                                         H.td
