@@ -158,6 +158,7 @@ getHomeR = do
   totals <-
     runDB
       (E.select (E.from (\content -> pure (E.count (content E.^. ContentId)))))
+  renderer <- getUrlRender
   pure
     (H.html
        (do H.head
@@ -179,6 +180,10 @@ getHomeR = do
                              toHtml
                                (show
                                   (sum (map (\(E.Value x) -> x) totals) :: Int))))
+                 H.p
+                   (H.a !
+                    A.href (H.toValue (renderer StatsR)) $
+                    "More stats")
                  H.hr
                  H.p
                    (do "A service provided by "
