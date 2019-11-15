@@ -51,7 +51,6 @@ import qualified Data.List.NonEmpty as NE
 import           Data.Maybe
 import           Data.Pool
 import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
 import           Data.Time
 import           Data.Word
 import qualified Database.Esqueleto as E
@@ -181,10 +180,8 @@ getHomeR = do
                    (H.small
                       (do "Request host: "
                           H.code
-                            (maybe
-                               "None given"
-                               (toHtml . T.decodeUtf8)
-                               (requestHeaderHost (reqWaiRequest request))))))))
+                            (toHtml
+                               (show (remoteHost (reqWaiRequest request)))))))))
 
 -- | Get a single blob in a web interface.
 getMetadataR :: BlobKey -> Handler Value
