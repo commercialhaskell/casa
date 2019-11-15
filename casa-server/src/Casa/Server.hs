@@ -103,6 +103,7 @@ AccessLog
   key BlobKey
   count Int
   lastAccess UTCTime
+  Unique AccessUnqiueKey key
 |]
 
 --------------------------------------------------------------------------------
@@ -261,6 +262,7 @@ getKeyR blobKey = do
             (\content -> do
                E.where_ (content E.^. ContentKey E.==. E.val blobKey)
                return (content E.^. ContentBlob))))
+  logAccesses (pure blobKey)
   case listToMaybe contents of
     Nothing -> notFound
     Just (E.Value bytes) ->
@@ -326,25 +328,18 @@ logAccesses :: NonEmpty BlobKey -> Handler ()
 logAccesses keys = do
   now <- liftIO getCurrentTime
   runDB
-    (do existing <-
-          fmap
-            (fmap (\(E.Value i) -> i))
-            (E.select
-               (E.from
-                  (\log -> do
-                     E.where_
-                       (E.in_ (log E.^. AccessLogKey) (E.valList (toList keys)))
-                     pure (log E.^. AccessLogKey))))
-        updateWhere
-          (map (AccessLogKey ==.) existing)
-          [AccessLogLastAccess =. now, AccessLogCount +=. 1]
-        let keySet = Set.fromList existing
-        insertMany_
-          [ AccessLog
-            {accessLogKey = key, accessLogCount = 1, accessLogLastAccess = now}
-          | key <- toList keys
-          , Set.notMember key keySet
-          ])
+    (void
+       (mapM_
+          (\key ->
+             upsertBy
+               (AccessUnqiueKey key)
+               (AccessLog
+                  { accessLogKey = key
+                  , accessLogCount = 1
+                  , accessLogLastAccess = now
+                  })
+               [AccessLogLastAccess =. now, AccessLogCount +=. 1])
+          keys))
 
 --------------------------------------------------------------------------------
 -- Input reader
