@@ -5,27 +5,27 @@
 
 packages:
 - completed:
-    size: 688239
-    url: https://github.com/commercialhaskell/stack/archive/a3bcd98a281762f8d063fcb72cc1ee6bae9ff5f3.tar.gz
     name: stack
     version: 2.2.0
-    sha256: 0a295eaf05a9557ac27b991788ae2dfed8322b1009d0f2411a02f4526a27cbce
+    git: https://github.com/commercialhaskell/stack.git
     pantry-tree:
       size: 75284
       sha256: 392e52415503697826e4916d00bed3dd778be50145db53ec6c843d1fbf24f683
+    commit: a3bcd98a281762f8d063fcb72cc1ee6bae9ff5f3
   original:
-    url: https://github.com/commercialhaskell/stack/archive/a3bcd98a281762f8d063fcb72cc1ee6bae9ff5f3.tar.gz
+    git: https://github.com/commercialhaskell/stack.git
+    commit: a3bcd98a281762f8d063fcb72cc1ee6bae9ff5f3
 - completed:
-    size: 94600
-    url: https://github.com/commercialhaskell/pantry/archive/de8a0b5f88e9974fafb4a6ed5835d1da8f821d80.tar.gz
     name: pantry
     version: 0.2.0.0
-    sha256: 1aabafc57d49a19007b495a518a52e57283220397851ff20aeff0e8b2b7655e0
+    git: https://github.com/commercialhaskell/pantry.git
     pantry-tree:
       size: 3546
       sha256: 323d120275f9d7591c60116c8a6f4faf3e5ef1ed780bfd5bcfb61c9a2a0c0b68
+    commit: de8a0b5f88e9974fafb4a6ed5835d1da8f821d80
   original:
-    url: https://github.com/commercialhaskell/pantry/archive/de8a0b5f88e9974fafb4a6ed5835d1da8f821d80.tar.gz
+    git: https://github.com/commercialhaskell/pantry.git
+    commit: de8a0b5f88e9974fafb4a6ed5835d1da8f821d80
 - completed:
     hackage: hi-file-parser-0.1.0.0@sha256:3fc95852035c8e0fa6d5f9d22e5108067c8f4816ac84675bddc971b20144a9ae,2317
     pantry-tree:
