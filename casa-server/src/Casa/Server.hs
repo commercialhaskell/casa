@@ -177,11 +177,16 @@ getHomeR = do
                        H.a ! A.href "https://www.fpcomplete.com/" $
                          "FP Complete")
                  H.p
-                   (H.small
-                      (do "Request host: "
-                          H.code
-                            (toHtml
-                               (show (remoteHost (reqWaiRequest request)))))))))
+                   (do H.small
+                         (do "Request host: "
+                             H.code
+                               (toHtml
+                                  (show (remoteHost (reqWaiRequest request)))))
+                       H.small
+                         (do "Request headers: "
+                             H.code
+                               (toHtml
+                                  (show (requestHeaders (reqWaiRequest request)))))))))
 
 -- | Get a single blob in a web interface.
 getMetadataR :: BlobKey -> Handler Value
