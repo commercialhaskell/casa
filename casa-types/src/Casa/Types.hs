@@ -39,7 +39,7 @@ instance PathPiece BlobKey where
   fromPathPiece =
     either (const Nothing) Just .
     blobKeyHexParser
-  toPathPiece = T.decodeUtf8 . unBlobKey
+  toPathPiece = T.decodeUtf8 . Hex.encode . unBlobKey
 
 -- | Parse a blob key in hex format.
 blobKeyHexParser :: Text -> Either String BlobKey
