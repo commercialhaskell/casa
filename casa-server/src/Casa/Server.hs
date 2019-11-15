@@ -52,6 +52,7 @@ import           Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
 import           Data.Maybe
 import           Data.Pool
+import qualified Data.Set as Set
 import qualified Data.Text as T
 import           Data.Time
 import           Data.Word
@@ -325,9 +326,25 @@ logAccesses :: NonEmpty BlobKey -> Handler ()
 logAccesses keys = do
   now <- liftIO getCurrentTime
   runDB
-    (updateWhere
-       (map (AccessLogKey ==.) (toList keys))
-       [AccessLogLastAccess =. now, AccessLogCount +=. 1])
+    (do existing <-
+          fmap
+            (fmap (\(E.Value i) -> i))
+            (E.select
+               (E.from
+                  (\log -> do
+                     E.where_
+                       (E.in_ (log E.^. AccessLogKey) (E.valList (toList keys)))
+                     pure (log E.^. AccessLogKey))))
+        updateWhere
+          (map (AccessLogKey ==.) existing)
+          [AccessLogLastAccess =. now, AccessLogCount +=. 1]
+        let keySet = Set.fromList existing
+        insertMany_
+          [ AccessLog
+            {accessLogKey = key, accessLogCount = 1, accessLogLastAccess = now}
+          | key <- toList keys
+          , Set.notMember key keySet
+          ])
 
 --------------------------------------------------------------------------------
 -- Input reader
