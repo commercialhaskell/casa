@@ -1,4 +1,8 @@
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE Strict #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE DisambiguateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# OPTIONS_GHC -fno-warn-deprecations #-}
@@ -13,17 +17,42 @@ import           Casa.Types
 import           Control.Concurrent.Async
 import           Control.Exception
 import           Control.Monad.Trans.Reader
+import qualified Data.ByteString as S
 import qualified Data.ByteString.Builder as SB
 import           Data.Conduit
 import           Data.Conduit.Attoparsec
 import           Data.Conduit.ByteString.Builder
 import qualified Data.Conduit.List as CL
 import qualified Data.HashMap.Strict as HM
+import qualified Data.Map.Strict as M
 import           Data.Pool
 import           Data.Text (Text)
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
+import           Data.Time
+import qualified Data.UUID as UUID
+import qualified Data.UUID.V4 as UUID
+import qualified Distribution.License as Cabal
+import qualified Distribution.PackageDescription as Cabal
+import qualified Distribution.PackageDescription.PrettyPrint as Cabal
+import qualified Distribution.Types.GenericPackageDescription as Cabal
+import qualified Distribution.Types.PackageId as Cabal
+import qualified Distribution.Version as Cabal
 import qualified Network.BSD as Network
 import qualified Network.Socket as Network
 import qualified Network.Wai.Handler.Warp as Warp
+import qualified Pantry as Pantry
+import qualified Pantry.Internal as Pantry
+import qualified Pantry.SHA256 as Pantry
+import           RIO hiding (bracketOnError, withAsync, race)
+import           RIO.PrettyPrint.StylesUpdate
+import           RIO.Process
+import qualified Stack.Build.Target
+import qualified Stack.Config
+import qualified Stack.Runners
+import qualified Stack.Types.Config
+import qualified Stack.Types.Config.Build
+import qualified Stack.Types.Resolver
 import           Test.Hspec
 import           Yesod
 
@@ -37,6 +66,7 @@ spec :: SpecWith ()
 spec = do
   inputSpec
   integrationSpec
+  stackSpec
 
 inputSpec :: SpecWith ()
 inputSpec =
@@ -164,6 +194,192 @@ integrationSpec = do
                ]))
        | maxPerRequest <- [1 .. 3]
        ])
+
+--------------------------------------------------------------------------------
+-- Tests for Stack
+--
+-- We're currently testing stack against Casa, rather than vice-versa,
+-- until Stack's snapshot is brought forward.
+
+data FabricatedPackage = FabricatedPackage
+  { packageLocationImmutable :: Pantry.PackageLocationImmutable
+  , cabalFileBytes :: ByteString
+  , cabalFileBlobKey :: Pantry.BlobKey
+  , packageTree :: Pantry.Tree
+  , treeKey :: Pantry.TreeKey
+  , genericPackageDescription :: Cabal.GenericPackageDescription
+  }
+
+stackSpec :: Spec
+stackSpec =
+  describe
+    "Stack"
+    (it
+       "Spin up a server with one package in it, pull the package with Stack"
+       stackPullTest)
+
+-- | Check that running a Casa server with a randomly-generated
+-- package in it, and downloading it with Stack works correctly.
+stackPullTest :: IO ()
+stackPullTest = do
+  fabricated@FabricatedPackage {packageLocationImmutable, treeKey, genericPackageDescription} <-
+    fmap makePackageLocationImmutable UUID.nextRandom
+  (port, runWebServer) <- makeRunCasaForStack fabricated
+  result <-
+    race runWebServer (runStackAgainstOurCasa port packageLocationImmutable)
+  shouldBe
+    (fmap (second Pantry.packageTreeKey) result)
+    (Right (genericPackageDescription, treeKey))
+
+-- | Make a local, ephemeral, Casa deploy with a single fabricated
+-- package inside it.
+makeRunCasaForStack :: FabricatedPackage -> IO (Int, IO ())
+makeRunCasaForStack FabricatedPackage { cabalFileBlobKey = Pantry.BlobKey cabalFileSha256 _
+                                      , cabalFileBytes
+                                      , treeKey = Pantry.TreeKey (Pantry.BlobKey treeSha256 _)
+                                      , packageTree
+                                      } =
+  withDBPool
+    (\pool ->
+       liftIO
+         (do now <- getCurrentTime
+             withResource
+               pool
+               (runReaderT
+                  (do void
+                        (insertUnique
+                           Content
+                             { contentKey =
+                                 BlobKey (Pantry.toRaw cabalFileSha256)
+                             , contentBlob = cabalFileBytes
+                             , contentCreated = now
+                             })
+                      void
+                        (insertUnique
+                           Content
+                             { contentKey = BlobKey (Pantry.toRaw treeSha256)
+                             , contentBlob = Pantry.renderTree packageTree
+                             , contentCreated = now
+                             })))
+             runWarpOnFreePort
+               (App
+                  { appAuthorized = Unauthorized "Not needed in this test"
+                  , appLogging = True
+                  , appPool = pool
+                  })))
+
+-- | Run Stack and load the package against the local Casa server.
+runStackAgainstOurCasa ::
+     Int
+  -> Pantry.PackageLocationImmutable
+  -> IO (Cabal.GenericPackageDescription, Pantry.Package)
+runStackAgainstOurCasa port packageLocationImmutable = do
+  case parseCasaRepoPrefix ("http://localhost:" <> show port) of
+    Left err -> error ("Casa repo parse error: " ++ err)
+    Right casaRepoPrefix ->
+      runSimpleApp
+        (do runnerLogFunc <- RIO.asks (view logFuncL)
+            runnerProcessContext <- RIO.asks (view processContextL)
+            runRIO
+              (Stack.Types.Config.Runner
+                 { runnerGlobalOpts = runnerGlobalOpts casaRepoPrefix
+                 , runnerUseColor = False
+                 , runnerLogFunc
+                 , runnerTermWidth = 80
+                 , runnerProcessContext
+                 })
+              (Stack.Config.loadConfig
+                 (\config ->
+                    runRIO
+                      config
+                      (Stack.Runners.withEnvConfig
+                         Stack.Build.Target.AllowNoTargets
+                         Stack.Types.Config.Build.defaultBuildOptsCLI
+                         (do cabalDesc <-
+                               Pantry.loadCabalFileImmutable
+                                 packageLocationImmutable
+                             package <- Pantry.loadPackage packageLocationImmutable
+                             pure (cabalDesc, package))))))
+  where
+    runnerGlobalOpts casaRepoPrefix =
+      Stack.Types.Config.GlobalOpts
+        { globalReExecVersion = Nothing
+        , globalDockerEntrypoint = Nothing
+        , globalLogLevel = RIO.LevelInfo
+        , globalTimeInLog = False
+        , globalConfigMonoid =
+            mempty
+              { Stack.Types.Config.configMonoidCasaRepoPrefix =
+                  pure casaRepoPrefix
+              }
+        , globalResolver =
+            Just
+              (Stack.Types.Resolver.ARResolver
+                 (Pantry.ltsSnapshotLocation 13 28))
+                 -- This matches the lts-13.28 currently used by
+                 -- stack.  It's not particularly important, as our
+                 -- test crosses snapshot boundaries.
+        , globalCompiler = Nothing
+        , globalTerminal = False
+        , globalStylesUpdate = StylesUpdate []
+        , globalTermWidth = Nothing
+        , globalStackYaml = Stack.Types.Config.SYLNoProject []
+        , globalLockFileBehavior = Stack.Types.Config.LFBIgnore
+        }
+
+-- | Make a fake package.
+makePackageLocationImmutable :: UUID.UUID -> FabricatedPackage
+makePackageLocationImmutable uuid =
+  FabricatedPackage
+    { packageLocationImmutable
+    , cabalFileBytes
+    , cabalFileBlobKey
+    , packageTree
+    , treeKey
+    , genericPackageDescription
+    }
+  where
+    packageLocationImmutable =
+      Pantry.PLIHackage cabalPackageIdentifier cabalFileBlobKey treeKey
+    cabalFilePath =
+      case Pantry.mkSafeFilePath (fromString pkgName <> ".cabal") of
+        Nothing ->
+          error
+            ("makePackageLocationImmutable: Invalid file path. This is unexpected!")
+        Just fp -> fp
+    pkgName = "dummy" <> filter (/= '-') (UUID.toString uuid)
+    pkgVersion = Cabal.mkVersion [0]
+    treeKey =
+      Pantry.TreeKey
+        (Pantry.BlobKey
+           (Pantry.hashBytes treeRendered)
+           (Pantry.FileSize (fromIntegral (S.length treeRendered))))
+    treeRendered = Pantry.renderTree packageTree
+    packageTree =
+      Pantry.TreeMap
+        (M.fromList
+           [ ( cabalFilePath
+             , Pantry.TreeEntry
+                 {teBlob = cabalFileBlobKey, teType = Pantry.FTNormal})
+           ])
+    cabalFileBytes =
+      T.encodeUtf8
+        (T.pack (Cabal.showGenericPackageDescription genericPackageDescription))
+    cabalPackageIdentifier =
+      Cabal.PackageIdentifier {pkgName = fromString pkgName, pkgVersion}
+    genericPackageDescription =
+      Cabal.emptyGenericPackageDescription
+        { Cabal.packageDescription =
+            Cabal.emptyPackageDescription
+              { Cabal.package = cabalPackageIdentifier
+              , Cabal.licenseRaw =
+                  Right (Cabal.UnknownLicense "UnspecifiedLicense")
+              }
+        }
+    cabalFileBlobKey =
+      Pantry.BlobKey
+        (Pantry.hashBytes cabalFileBytes)
+        (Pantry.FileSize (fromIntegral (S.length cabalFileBytes)))
 
 --------------------------------------------------------------------------------
 -- Supplementary

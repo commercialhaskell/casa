@@ -1,4 +1,5 @@
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NamedFieldPuns #-}
@@ -25,6 +26,8 @@ module Casa.Server
   , migrateAll
   , Content(..)
   , ContentId
+  , AccessLog(..)
+  , AccessLogId
   ) where
 
 import           Casa.Backend
@@ -49,10 +52,12 @@ import           Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
 import           Data.Maybe
 import           Data.Pool
+import qualified Data.Set as Set
 import qualified Data.Text as T
 import           Data.Time
 import           Data.Word
 import qualified Database.Esqueleto as E
+import           Prelude hiding (log)
 import           System.Environment
 import           Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
@@ -94,6 +99,11 @@ Content
   blob ByteString
   created UTCTime default=CURRENT_TIMESTAMP
   Unique BlobUniqueKey key
+AccessLog
+  key BlobKey
+  count Int
+  lastAccess UTCTime
+  Unique AccessUnqiueKey key
 |]
 
 --------------------------------------------------------------------------------
@@ -105,6 +115,7 @@ mkYesod "App" [parseRoutesNoCheck|
   /v1/push PushR POST
   /v1/metadata/#BlobKey MetadataR GET
   /#BlobKey KeyR GET
+  /stats StatsR GET
 |]
 
 instance Yesod App where
@@ -116,6 +127,7 @@ instance Yesod App where
       KeyR {} -> pure Authorized
       MetadataR {} -> pure Authorized
       HomeR -> pure Authorized
+      StatsR -> pure Authorized
   maximumContentLength _ mroute =
     case mroute of
       Nothing -> Just maximumContentLen
@@ -124,6 +136,7 @@ instance Yesod App where
       Just PushR {} -> Nothing
       Just MetadataR {} -> Just maximumContentLen
       Just HomeR {} -> Just maximumContentLen
+      Just StatsR {} -> Just maximumContentLen
   makeSessionBackend _ = return Nothing
   shouldLogIO app src level =
     if appLogging app
@@ -147,6 +160,7 @@ getHomeR = do
   totals <-
     runDB
       (E.select (E.from (\content -> pure (E.count (content E.^. ContentId)))))
+  renderer <- getUrlRender
   pure
     (H.html
        (do H.head
@@ -168,11 +182,60 @@ getHomeR = do
                              toHtml
                                (show
                                   (sum (map (\(E.Value x) -> x) totals) :: Int))))
+                 H.p
+                   (H.a !
+                    A.href (H.toValue (renderer StatsR)) $
+                    "More stats")
                  H.hr
                  H.p
                    (do "A service provided by "
                        H.a ! A.href "https://www.fpcomplete.com/" $
                          "FP Complete"))))
+
+-- | Get some basic stats based on the logs.
+getStatsR :: Handler Html
+getStatsR = do
+  do logs <-
+       runDB
+         (E.select
+            (E.from
+               (\log -> do
+                  E.orderBy
+                    [ E.desc (log E.^. AccessLogCount)
+                    , E.desc (log E.^. AccessLogLastAccess)
+                    ]
+                  E.limit 100
+                  pure log)))
+     renderer <- getUrlRender
+     pure
+       (H.html
+          (do H.head
+                (do H.title "Casa stats"
+                    H.style "body{font-family:sans-serif;}")
+              H.body
+                (do H.h1 "Casa stats"
+                    H.table
+                      (do H.thead
+                            (do H.th "Key"
+                                H.th "Pulls"
+                                H.th "Last access")
+                          H.tbody
+                            (mapM_
+                               (\((Entity _ log)) ->
+                                  H.tr
+                                    (do H.td
+                                          (H.a !
+                                           A.href
+                                             (H.toValue
+                                                (renderer
+                                                   (MetadataR (accessLogKey log)))) $
+                                           toHtml (toPathPiece (accessLogKey log)))
+                                        H.td
+                                          (toHtml (show (accessLogCount log)))
+                                        H.td
+                                          (toHtml
+                                             (show (accessLogLastAccess log)))))
+                               logs)))))
 
 -- | Get a single blob in a web interface.
 getMetadataR :: BlobKey -> Handler Value
@@ -199,6 +262,7 @@ getKeyR blobKey = do
             (\content -> do
                E.where_ (content E.^. ContentKey E.==. E.val blobKey)
                return (content E.^. ContentBlob))))
+  logAccesses (pure blobKey)
   case listToMaybe contents of
     Nothing -> notFound
     Just (E.Value bytes) ->
@@ -236,7 +300,8 @@ postPullR :: Handler TypedContent
 postPullR = do
   keyLenPairs <- keyLenPairsFromBody
   let keys = fmap fst keyLenPairs
-      source =
+  logAccesses keys -- TODO: Put this in another thread later.
+  let source =
         E.selectSource
           (E.from
              (\content -> do
@@ -250,10 +315,31 @@ postPullR = do
     "application/octet-stream"
     (source .|
      CL.concatMap
-       (\(E.Value blobKey,E.Value blob) ->
+       (\(E.Value blobKey, E.Value blob) ->
           [ Chunk (blobKeyToBuilder blobKey <> SB.byteString blob)
           , Flush -- Do we want to flush after every blob?
           ]))
+
+--------------------------------------------------------------------------------
+-- Access logger
+
+-- | Log accesses of blob keys to the database.
+logAccesses :: NonEmpty BlobKey -> Handler ()
+logAccesses keys = do
+  now <- liftIO getCurrentTime
+  runDB
+    (void
+       (mapM_
+          (\key ->
+             upsertBy
+               (AccessUnqiueKey key)
+               (AccessLog
+                  { accessLogKey = key
+                  , accessLogCount = 1
+                  , accessLogLastAccess = now
+                  })
+               [AccessLogLastAccess =. now, AccessLogCount +=. 1])
+          keys))
 
 --------------------------------------------------------------------------------
 -- Input reader
