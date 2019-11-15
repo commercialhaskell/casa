@@ -149,7 +149,6 @@ getHomeR = do
   totals <-
     runDB
       (E.select (E.from (\content -> pure (E.count (content E.^. ContentId)))))
-  request <- getRequest
   pure
     (H.html
        (do H.head
@@ -175,18 +174,7 @@ getHomeR = do
                  H.p
                    (do "A service provided by "
                        H.a ! A.href "https://www.fpcomplete.com/" $
-                         "FP Complete")
-                 H.p
-                   (do H.small
-                         (do "Request host: "
-                             H.code
-                               (toHtml
-                                  (show (remoteHost (reqWaiRequest request)))))
-                       H.small
-                         (do "Request headers: "
-                             H.code
-                               (toHtml
-                                  (show (requestHeaders (reqWaiRequest request)))))))))
+                         "FP Complete"))))
 
 -- | Get a single blob in a web interface.
 getMetadataR :: BlobKey -> Handler Value
