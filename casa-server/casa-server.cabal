@@ -51,6 +51,7 @@ library
     , time
     , blaze-html
     , wai
+    , transformers
 
 executable casa-server
   main-is: Main.hs
