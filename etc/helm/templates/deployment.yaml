@@ -35,7 +35,7 @@ spec:
                   key: PGCONN
           readinessProbe:
             httpGet:
-              path: /
+              path: /liveness
               port: {{ .Values.port }}
             initialDelaySeconds: 5
             timeoutSeconds: 3
@@ -43,7 +43,7 @@ spec:
             successThreshold: 1
           livenessProbe:
             httpGet:
-              path: /
+              path: /liveness
               port: {{ .Values.port }}
             initialDelaySeconds: 120
             timeoutSeconds: 3

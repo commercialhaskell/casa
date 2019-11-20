@@ -52,6 +52,7 @@ import           Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
 import           Data.Maybe
 import           Data.Pool
+import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Time
 import           Data.Word
@@ -115,6 +116,7 @@ mkYesod "App" [parseRoutesNoCheck|
   /v1/metadata/#BlobKey MetadataR GET
   /#BlobKey KeyR GET
   /stats StatsR GET
+  /liveness LiveR GET
 |]
 
 instance Yesod App where
@@ -127,6 +129,7 @@ instance Yesod App where
       MetadataR {} -> pure Authorized
       HomeR -> pure Authorized
       StatsR -> pure Authorized
+      LiveR -> pure Authorized
   maximumContentLength _ mroute =
     case mroute of
       Nothing -> Just maximumContentLen
@@ -136,6 +139,7 @@ instance Yesod App where
       Just MetadataR {} -> Just maximumContentLen
       Just HomeR {} -> Just maximumContentLen
       Just StatsR {} -> Just maximumContentLen
+      Just LiveR {} -> Just maximumContentLen
   makeSessionBackend _ = return Nothing
   shouldLogIO app src level =
     if appLogging app
@@ -144,6 +148,16 @@ instance Yesod App where
 
 --------------------------------------------------------------------------------
 -- Handlers
+
+getLiveR :: Handler Text
+getLiveR = do
+  now <- liftIO getCurrentTime
+  status <- runDB (E.select (pure (E.val "Database connectivity is OK!")))
+  later <- liftIO getCurrentTime
+  pure
+    (T.concat
+       (map (\(E.Value t) -> t) status ++
+        ["Database responded in " <> T.pack (show (diffUTCTime later now))]))
 
 -- | Display some simple message in the home page.
 getHomeR :: Handler Html
