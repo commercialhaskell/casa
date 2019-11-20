@@ -162,17 +162,6 @@ getLiveR = do
 -- | Display some simple message in the home page.
 getHomeR :: Handler Html
 getHomeR = do
-  dates <-
-    runDB
-      (E.select
-         (E.from
-            (\content -> do
-               E.orderBy [E.desc (content E.^. ContentCreated)]
-               E.limit 1
-               pure (content E.^. ContentCreated))))
-  totals <-
-    runDB
-      (E.select (E.from (\content -> pure (E.count (content E.^. ContentId)))))
   renderer <- getUrlRender
   pure
     (H.html
@@ -183,22 +172,7 @@ getHomeR = do
              (do H.h1 "Casa"
                  H.h2 "Content-Addressable Storage Archive"
                  H.p "Statistics:"
-                 H.ul
-                   (do H.li
-                         (do "Last uploaded blob: "
-                             maybe
-                               "Never"
-                               (toHtml . show)
-                               (fmap (\(E.Value t) -> t) (listToMaybe dates)))
-                       H.li
-                         (do "Total blobs in server: "
-                             toHtml
-                               (show
-                                  (sum (map (\(E.Value x) -> x) totals) :: Int))))
-                 H.p
-                   (H.a !
-                    A.href (H.toValue (renderer StatsR)) $
-                    "More stats")
+                 H.p (H.a ! A.href (H.toValue (renderer StatsR)) $ "Statistics")
                  H.hr
                  H.p
                    (do "A service provided by "
@@ -208,7 +182,18 @@ getHomeR = do
 -- | Get some basic stats based on the logs.
 getStatsR :: Handler Html
 getStatsR = do
-  do logs <-
+  do dates <-
+       runDB
+         (E.select
+            (E.from
+               (\content -> do
+                  E.orderBy [E.desc (content E.^. ContentCreated)]
+                  E.limit 1
+                  pure (content E.^. ContentCreated))))
+     totals <-
+       runDB
+         (E.select (E.from (\content -> pure (E.count (content E.^. ContentId)))))
+     logs <-
        runDB
          (E.select
             (E.from
@@ -227,6 +212,18 @@ getStatsR = do
                     H.style "body{font-family:sans-serif;}")
               H.body
                 (do H.h1 "Casa stats"
+                    H.ul
+                      (do H.li
+                            (do "Last uploaded blob: "
+                                maybe
+                                  "Never"
+                                  (toHtml . show)
+                                  (fmap (\(E.Value t) -> t) (listToMaybe dates)))
+                          H.li
+                            (do "Total blobs in server: "
+                                toHtml
+                                  (show
+                                     (sum (map (\(E.Value x) -> x) totals) :: Int))))
                     H.table
                       (do H.thead
                             (do H.th "Key"
