@@ -12,6 +12,8 @@ module Casa.Client
   , CasaRepoPrefix
   , parseCasaRepoPrefix
   , thParserCasaRepo
+  , PushException(..)
+  , PullException(..)
   ) where
 
 import           Casa.Types
