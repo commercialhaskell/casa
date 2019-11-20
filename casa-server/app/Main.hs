@@ -30,7 +30,11 @@ main = do
         run port (gzip def {gzipCheckMime = const True} app)
   withDBPool
     (\pool -> do
-       withResource pool (runReaderT (runMigration migrateAll))
+       withResource
+         pool
+         (runReaderT
+            (do runMigration migrateAll
+                manualMigration))
        liftIO
          (concurrently_
             (runWithAuthAndPort pool authorizedPort Authorized)
