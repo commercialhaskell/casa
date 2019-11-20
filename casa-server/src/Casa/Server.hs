@@ -172,7 +172,7 @@ getHomeR = do
              (do H.h1 "Casa"
                  H.h2 "Content-Addressable Storage Archive"
                  H.p "Statistics:"
-                 H.p (H.a ! A.href (H.toValue (renderer StatsR)) $ "Statistics")
+                 H.p (H.a ! A.href (H.toValue (renderer StatsR)) $ "More stats")
                  H.hr
                  H.p
                    (do "A service provided by "
