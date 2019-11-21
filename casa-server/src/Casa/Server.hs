@@ -284,15 +284,13 @@ getMetaR key = do
                        ((H.a ! A.href (H.toValue (renderer (KeyR key))) $
                          "Download raw"))
                      H.p
-                       (do H.strong "Created"
+                       (do H.strong "Created: "
                            toHtml (show (contentCreated blob)))
                      H.p
-                       (do H.strong "Size"
+                       (do H.strong "Size: "
                            toHtml (show (S.length (contentBlob blob))))
-                     H.p
-                       (do H.strong "Preview (limited to 512 bytes)"
-                           toHtml (show (S.length (contentBlob blob))))
-                     H.pre (toHtml (show (S.take 512 (contentBlob blob)))))))
+                     H.p (H.strong "Preview (limited to 512 bytes)")
+                     H.p (H.code (toHtml (show (S.take 512 (contentBlob blob))))))))
 
 -- | Get a single blob in a web interface.
 getKeyR :: BlobKey -> Handler TypedContent
