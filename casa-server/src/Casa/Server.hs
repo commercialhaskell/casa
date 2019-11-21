@@ -170,9 +170,6 @@ getHomeR = do
                E.orderBy [E.desc (content E.^. ContentCreated)]
                E.limit 1
                pure (content E.^. ContentCreated))))
-  totals <-
-    runDB
-      (E.select (E.from (\content -> pure (E.count (content E.^. ContentId)))))
   renderer <- getUrlRender
   pure
     (H.html
@@ -189,16 +186,8 @@ getHomeR = do
                              maybe
                                "Never"
                                (toHtml . show)
-                               (fmap (\(E.Value t) -> t) (listToMaybe dates)))
-                       H.li
-                         (do "Total blobs in server: "
-                             toHtml
-                               (show
-                                  (sum (map (\(E.Value x) -> x) totals) :: Int))))
-                 H.p
-                   (H.a !
-                    A.href (H.toValue (renderer StatsR)) $
-                    "More stats")
+                               (fmap (\(E.Value t) -> t) (listToMaybe dates))))
+                 H.p (H.a ! A.href (H.toValue (renderer StatsR)) $ "More stats")
                  H.hr
                  H.p
                    (do "A service provided by "
