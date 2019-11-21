@@ -169,7 +169,7 @@ getHomeR = do
             (\content -> do
                E.orderBy [E.desc (content E.^. ContentCreated)]
                E.limit 1
-               pure (content E.^. ContentCreated))))
+               pure (content E.^. ContentCreated, content E.^. ContentKey))))
   renderer <- getUrlRender
   pure
     (H.html
@@ -185,8 +185,16 @@ getHomeR = do
                          (do "Last uploaded blob: "
                              maybe
                                "Never"
-                               (toHtml . show)
-                               (fmap (\(E.Value t) -> t) (listToMaybe dates))))
+                               (\(t, key) -> do
+                                  H.strong (toHtml (show t))
+                                  " "
+                                  H.a !
+                                    A.href
+                                      (H.toValue (renderer (MetadataR key))) $
+                                    H.code (toHtml (toPathPiece key)))
+                               (fmap
+                                  (\(E.Value t, E.Value key) -> (t, key))
+                                  (listToMaybe dates))))
                  H.p (H.a ! A.href (H.toValue (renderer StatsR)) $ "More stats")
                  H.hr
                  H.p
