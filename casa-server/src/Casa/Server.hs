@@ -111,10 +111,11 @@ AccessLog
 
 mkYesod "App" [parseRoutesNoCheck|
   / HomeR GET
-  /v1/pull PullR POST
-  /v1/push PushR POST
-  /v1/metadata/#BlobKey MetadataR GET
+  /v1/pull V1PullR POST
+  /v1/push V1PushR POST
+  /v1/metadata/#BlobKey V1MetadataR GET
   /#BlobKey KeyR GET
+  /meta/#BlobKey MetaR GET
   /stats StatsR GET
   /liveness LiveR GET
 |]
@@ -123,20 +124,22 @@ instance Yesod App where
   isAuthorized route _ignored = do
     app <- getYesod
     case route of
-      PushR -> pure (appAuthorized app)
-      PullR -> pure Authorized
+      V1PushR -> pure (appAuthorized app)
+      V1PullR -> pure Authorized
       KeyR {} -> pure Authorized
-      MetadataR {} -> pure Authorized
+      V1MetadataR {} -> pure Authorized
+      MetaR {} -> pure Authorized
       HomeR -> pure Authorized
       StatsR -> pure Authorized
       LiveR -> pure Authorized
   maximumContentLength _ mroute =
     case mroute of
       Nothing -> Just maximumContentLen
-      Just PullR -> Just maximumContentLen
+      Just V1PullR -> Just maximumContentLen
       Just KeyR {} -> Just maximumContentLen
-      Just PushR {} -> Nothing
-      Just MetadataR {} -> Just maximumContentLen
+      Just V1PushR {} -> Nothing
+      Just V1MetadataR {} -> Just maximumContentLen
+      Just MetaR {} -> Just maximumContentLen
       Just HomeR {} -> Just maximumContentLen
       Just StatsR {} -> Just maximumContentLen
       Just LiveR {} -> Just maximumContentLen
@@ -190,7 +193,7 @@ getHomeR = do
                                   " "
                                   H.a !
                                     A.href
-                                      (H.toValue (renderer (MetadataR key))) $
+                                      (H.toValue (renderer (MetaR key))) $
                                     H.code (toHtml (toPathPiece key)))
                                (fmap
                                   (\(E.Value t, E.Value key) -> (t, key))
@@ -238,7 +241,7 @@ getStatsR = do
                                            A.href
                                              (H.toValue
                                                 (renderer
-                                                   (MetadataR (accessLogKey log)))) $
+                                                   (MetaR (accessLogKey log)))) $
                                            H.code (toHtml (toPathPiece (accessLogKey log))))
                                         H.td
                                           (toHtml (show (accessLogCount log)))
@@ -248,8 +251,8 @@ getStatsR = do
                                logs)))))
 
 -- | Get a single blob in a web interface.
-getMetadataR :: BlobKey -> Handler Value
-getMetadataR key = do
+getV1MetadataR :: BlobKey -> Handler Value
+getV1MetadataR key = do
   mblob <- runDB (selectFirst [ContentKey ==. key] [])
   case mblob of
     Nothing -> notFound
@@ -261,6 +264,33 @@ getMetadataR key = do
            , "length" .= S.length (contentBlob blob)
            , "preview" .= show (S.take 80 (contentBlob blob))
            ])
+
+-- | Get a single blob in a web interface.
+getMetaR :: BlobKey -> Handler Html
+getMetaR key = do
+  mblob <- runDB (selectFirst [ContentKey ==. key] [])
+  case mblob of
+    Nothing -> notFound
+    Just (Entity _ blob) -> do
+      renderer <- getUrlRender
+      pure
+        (H.html
+           (do H.head
+                 (do H.title "Meta"
+                     H.style "body{font-family:sans-serif;}")
+               H.body
+                 (do H.h1 (H.code (toHtml (toPathPiece key)))
+                     H.p
+                       ((H.a ! A.href (H.toValue (renderer (KeyR key))) $
+                         "Download raw"))
+                     H.p
+                       (do H.strong "Created: "
+                           toHtml (show (contentCreated blob)))
+                     H.p
+                       (do H.strong "Size: "
+                           toHtml (show (S.length (contentBlob blob))))
+                     H.p (H.strong "Preview (limited to 512 bytes)")
+                     H.p (H.code (toHtml (show (S.take 512 (contentBlob blob))))))))
 
 -- | Get a single blob in a web interface.
 getKeyR :: BlobKey -> Handler TypedContent
@@ -282,8 +312,8 @@ getKeyR blobKey = do
            (ContentBuilder (S.byteString bytes) (Just (S.length bytes))))
 
 -- | Push a batch of blobs.
-postPushR :: Handler TypedContent
-postPushR = do
+postV1PushR :: Handler TypedContent
+postV1PushR = do
   -- I take the time at the beginning of the request, this way it's
   -- easier to see which keys were uploaded at the same time.
   now <- liftIO getCurrentTime
@@ -306,8 +336,8 @@ postPushR = do
                          })))))
 
 -- | Pull a batch of blobs.
-postPullR :: Handler TypedContent
-postPullR = do
+postV1PullR :: Handler TypedContent
+postV1PullR = do
   keyLenPairs <- keyLenPairsFromBody
   let keys = fmap fst keyLenPairs
   logAccesses keys -- TODO: Put this in another thread later.
