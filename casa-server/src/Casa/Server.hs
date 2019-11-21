@@ -461,11 +461,11 @@ template Template {body, title} =
                 \background: #f0f0f0;\
                 \}\
                 \a {\
-                \color: #08c;\
+                \color: #019a77;\
                 \text-decoration: none;\
                 \}\
                 \h1, h2, h3, h4, h5 {\
-                \color: #06537d;\
+                \color: #05685b;\
                 \word-break: break-all;\
                 \}\
                 \code {word-break: break-all;}\
