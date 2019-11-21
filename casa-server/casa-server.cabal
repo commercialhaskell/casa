@@ -52,6 +52,7 @@ library
     , wai
     , transformers
     , lucid
+    , mtl
     , yesod-lucid
 
 executable casa-server

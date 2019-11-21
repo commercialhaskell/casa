@@ -173,34 +173,28 @@ getHomeR = do
                E.limit 1
                pure (content E.^. ContentCreated, content E.^. ContentKey))))
   htmlWithUrl
-    (html_
-       (do head_
-             (do title_ "Casa"
-                 style_ "body{font-family:sans-serif;}")
-           body_
-             (do h1_ "Casa"
-                 h2_ "Content-Addressable Storage Archive"
-                 p_ "Statistics:"
-                 ul_
-                   (do li_
-                         (do "Last uploaded blob: "
-                             maybe
-                               "Never"
-                               (\(t, key) -> do
-                                  strong_ (toHtml (show t))
-                                  " "
-                                  url <- lift ask
-                                  a_ [href_ (url (MetaR key))] $
-                                    code_ (toHtml (toPathPiece key)))
-                               (fmap
-                                  (\(E.Value t, E.Value key) -> (t, key))
-                                  (listToMaybe dates))))
-                 url <- lift ask
-                 p_ (a_ [href_ (url StatsR)] "More stats")
-                 hr_ []
-                 p_
-                   (do "A service provided by "
-                       a_ [href_ "https://www.fpcomplete.com/"] "FP Complete"))))
+    (template
+       Template
+         { title = "Casa"
+         , body =
+             do h1_ "Casa"
+                p_ (em_ "(Content-Addressable Storage Archive)")
+                p_
+                  (do "Last uploaded blob: "
+                      maybe
+                        "Never"
+                        (\(t, key) -> do
+                           strong_ (toHtml (show t))
+                           " "
+                           url <- lift ask
+                           a_ [href_ (url (MetaR key))] $
+                             code_ (toHtml (toPathPiece key)))
+                        (fmap
+                           (\(E.Value t, E.Value key) -> (t, key))
+                           (listToMaybe dates)))
+                url <- lift ask
+                p_ (a_ [href_ (url StatsR)] "More statistics")
+         })
 
 -- | Get some basic stats based on the logs.
 getStatsR :: Handler (Html ())
@@ -217,36 +211,36 @@ getStatsR = do
                   E.limit 100
                   pure log)))
      htmlWithUrl
-       (html_
-          (do head_
-                (do title_ "Casa stats"
-                    style_ "body{font-family:sans-serif;}")
-              body_
-                (do h1_ "Casa stats"
-                    table_
-                      (do thead_
-                            (do th_ "Key"
-                                th_ "Pulls"
-                                th_ "Last access")
-                          tbody_
-                            (mapM_
-                               (\((Entity _ log)) ->
-                                  tr_
-                                    (do url <- lift ask
-                                        td_
-                                          (a_
-                                             [ href_
-                                                 (url (MetaR (accessLogKey log)))
-                                             ]
-                                             (code_
-                                                (toHtml
-                                                   (toPathPiece
-                                                      (accessLogKey log)))))
-                                        td_ (toHtml (show (accessLogCount log)))
-                                        td_
-                                          (toHtml
-                                             (show (accessLogLastAccess log)))))
-                               logs)))))
+       (template
+          Template
+            { title = "Stats"
+            , body =
+                do h1_ "Casa stats"
+                   table_
+                     (do thead_
+                           (do th_ "Key"
+                               th_ "Pulls"
+                               th_ "Last access")
+                         tbody_
+                           (mapM_
+                              (\((Entity _ log)) ->
+                                 tr_
+                                   (do url <- lift ask
+                                       td_
+                                         (a_
+                                            [ href_
+                                                (url (MetaR (accessLogKey log)))
+                                            ]
+                                            (code_
+                                               (toHtml
+                                                  (toPathPiece
+                                                     (accessLogKey log)))))
+                                       td_ (toHtml (show (accessLogCount log)))
+                                       td_
+                                         (toHtml
+                                            (show (accessLogLastAccess log)))))
+                              logs))
+            })
 
 -- | Get a single blob in a web interface.
 getV1MetadataR :: BlobKey -> Handler Value
@@ -271,22 +265,22 @@ getMetaR key = do
     Nothing -> notFound
     Just (Entity _ blob) -> do
       htmlWithUrl
-        (html_
-           (do url <- lift ask
-               head_
-                 (do title_ "Meta"
-                     style_ "body{font-family:sans-serif;}")
-               body_
-                 (do h1_ (code_ (toHtml (toPathPiece key)))
-                     p_ (a_ [href_ (url (KeyR key))] "Download raw")
-                     p_
-                       (do strong_ "Created: "
-                           toHtml (show (contentCreated blob)))
-                     p_
-                       (do strong_ "Size: "
-                           toHtml (show (S.length (contentBlob blob))))
-                     p_ (strong_ "Preview (limited to 512 bytes)")
-                     p_ (code_ (toHtml (show (S.take 512 (contentBlob blob))))))))
+        (template
+           Template
+             { title = "Meta"
+             , body =
+                 do url <- lift ask
+                    h1_ (code_ (toHtml (toPathPiece key)))
+                    p_ (a_ [href_ (url (KeyR key))] "Download raw")
+                    p_
+                      (do strong_ "Created: "
+                          toHtml (show (contentCreated blob)))
+                    p_
+                      (do strong_ "Size: "
+                          toHtml (show (S.length (contentBlob blob))))
+                    p_ (strong_ "Preview (limited to 512 bytes)")
+                    p_ (code_ (toHtml (show (S.take 512 (contentBlob blob)))))
+             })
 
 -- | Get a single blob in a web interface.
 getKeyR :: BlobKey -> Handler TypedContent
@@ -441,3 +435,44 @@ withDBPool cont = do
 -- | Hash some raw bytes.
 sha256Hash :: ByteString -> ByteString
 sha256Hash = Mem.convert . Crypto.hashWith Crypto.SHA256
+
+--------------------------------------------------------------------------------
+-- Minimal template
+
+data Template m = Template
+  { body :: HtmlT m ()
+  , title :: Text
+  }
+
+template :: Monad m => Template m -> HtmlT m ()
+template Template {body, title} =
+  html_
+    (do head_
+          (do title_ (toHtml title)
+              meta_
+                [httpEquiv_ "Content-Type", content_ "text/html; charset=UTF-8"]
+              meta_
+                [ name_ "viewport"
+                , content_ "width=device-width, initial-scale=1"
+                ]
+              style_
+                "body {\
+                \font-family: 'Lato', sans-serif; \
+                \background: #f0f0f0;\
+                \}\
+                \a {\
+                \color: #08c;\
+                \text-decoration: none;\
+                \}\
+                \h1, h2, h3, h4, h5 {\
+                \color: #06537d;\
+                \word-break: break-all;\
+                \}\
+                \code {word-break: break-all;}\
+                \hr { border: 1px solid #ccc; }")
+        body_
+          (do body
+              hr_ []
+              p_
+                (do "A service provided by "
+                    a_ [href_ "https://www.fpcomplete.com/"] "FP Complete")))
