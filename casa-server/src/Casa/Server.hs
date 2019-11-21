@@ -115,6 +115,7 @@ mkYesod "App" [parseRoutesNoCheck|
   /v1/push V1PushR POST
   /v1/metadata/#BlobKey V1MetadataR GET
   /#BlobKey KeyR GET
+  /meta/#BlobKey MetaR GET
   /stats StatsR GET
   /liveness LiveR GET
 |]
@@ -127,6 +128,7 @@ instance Yesod App where
       V1PullR -> pure Authorized
       KeyR {} -> pure Authorized
       V1MetadataR {} -> pure Authorized
+      MetaR {} -> pure Authorized
       HomeR -> pure Authorized
       StatsR -> pure Authorized
       LiveR -> pure Authorized
@@ -137,6 +139,7 @@ instance Yesod App where
       Just KeyR {} -> Just maximumContentLen
       Just V1PushR {} -> Nothing
       Just V1MetadataR {} -> Just maximumContentLen
+      Just MetaR {} -> Just maximumContentLen
       Just HomeR {} -> Just maximumContentLen
       Just StatsR {} -> Just maximumContentLen
       Just LiveR {} -> Just maximumContentLen
@@ -190,7 +193,7 @@ getHomeR = do
                                   " "
                                   H.a !
                                     A.href
-                                      (H.toValue (renderer (V1MetadataR key))) $
+                                      (H.toValue (renderer (MetaR key))) $
                                     H.code (toHtml (toPathPiece key)))
                                (fmap
                                   (\(E.Value t, E.Value key) -> (t, key))
@@ -238,7 +241,7 @@ getStatsR = do
                                            A.href
                                              (H.toValue
                                                 (renderer
-                                                   (V1MetadataR (accessLogKey log)))) $
+                                                   (MetaR (accessLogKey log)))) $
                                            H.code (toHtml (toPathPiece (accessLogKey log))))
                                         H.td
                                           (toHtml (show (accessLogCount log)))
@@ -261,6 +264,35 @@ getV1MetadataR key = do
            , "length" .= S.length (contentBlob blob)
            , "preview" .= show (S.take 80 (contentBlob blob))
            ])
+
+-- | Get a single blob in a web interface.
+getMetaR :: BlobKey -> Handler Html
+getMetaR key = do
+  mblob <- runDB (selectFirst [ContentKey ==. key] [])
+  case mblob of
+    Nothing -> notFound
+    Just (Entity _ blob) -> do
+      renderer <- getUrlRender
+      pure
+        (H.html
+           (do H.head
+                 (do H.title "Meta"
+                     H.style "body{font-family:sans-serif;}")
+               H.body
+                 (do H.h1 (H.code (toHtml (toPathPiece key)))
+                     H.p
+                       ((H.a ! A.href (H.toValue (renderer (KeyR key))) $
+                         "Download raw"))
+                     H.p
+                       (do H.strong "Created"
+                           toHtml (show (contentCreated blob)))
+                     H.p
+                       (do H.strong "Size"
+                           toHtml (show (S.length (contentBlob blob))))
+                     H.p
+                       (do H.strong "Preview (limited to 512 bytes)"
+                           toHtml (show (S.length (contentBlob blob))))
+                     H.pre (toHtml (show (S.take 512 (contentBlob blob)))))))
 
 -- | Get a single blob in a web interface.
 getKeyR :: BlobKey -> Handler TypedContent
