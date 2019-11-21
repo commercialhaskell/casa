@@ -68,6 +68,17 @@ packages:
       sha256: ba8e708bbeb1d2d277f40d09627e91cc597b08334b63936c661263c18108d008
   original:
     hackage: ansi-terminal-0.9@sha256:24e357bccd882add0d9caee63136d6b7923aaa9e36ed515097230dca82b0065c,3154
+- completed:
+    name: yesod-lucid
+    version: '0.1'
+    git: https://github.com/chrisdone/yesod-lucid.git
+    pantry-tree:
+      size: 361
+      sha256: ac78649b71c7b3f37070f62658794342f4d1ef9fdbc5a3764e43e931f5a7a86c
+    commit: cde88d0736a44163be70044a109798f578151db3
+  original:
+    git: https://github.com/chrisdone/yesod-lucid.git
+    commit: cde88d0736a44163be70044a109798f578151db3
 snapshots:
 - completed:
     size: 500539

@@ -34,6 +34,7 @@ import           Casa.Backend
 import           Casa.Types
 import           Control.Applicative
 import           Control.Monad.Logger
+import           Control.Monad.Reader
 import qualified Crypto.Hash as Crypto
 import qualified Data.Attoparsec.Binary as Atto.B
 import qualified Data.Attoparsec.ByteString as Atto.B
@@ -47,7 +48,6 @@ import           Data.Conduit
 import           Data.Conduit.Attoparsec
 import qualified Data.Conduit.List as CL
 import           Data.Foldable
-import           Data.Functor
 import           Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
 import           Data.Maybe
@@ -57,12 +57,11 @@ import qualified Data.Text as T
 import           Data.Time
 import           Data.Word
 import qualified Database.Esqueleto as E
+import           Lucid
 import           Prelude hiding (log)
 import           System.Environment
-import           Text.Blaze.Html5 ((!))
-import qualified Text.Blaze.Html5 as H
-import qualified Text.Blaze.Html5.Attributes as A
-import           Yesod hiding (Content)
+import           Yesod hiding (Content, Html, toHtml)
+import           Yesod.Lucid
 
 --------------------------------------------------------------------------------
 -- Constants
@@ -163,7 +162,7 @@ getLiveR = do
         ["Database responded in " <> T.pack (show (diffUTCTime later now))]))
 
 -- | Display some simple message in the home page.
-getHomeR :: Handler Html
+getHomeR :: Handler (Html ())
 getHomeR = do
   dates <-
     runDB
@@ -173,40 +172,38 @@ getHomeR = do
                E.orderBy [E.desc (content E.^. ContentCreated)]
                E.limit 1
                pure (content E.^. ContentCreated, content E.^. ContentKey))))
-  renderer <- getUrlRender
-  pure
-    (H.html
-       (do H.head
-             (do H.title "Casa"
-                 H.style "body{font-family:sans-serif;}")
-           H.body
-             (do H.h1 "Casa"
-                 H.h2 "Content-Addressable Storage Archive"
-                 H.p "Statistics:"
-                 H.ul
-                   (do H.li
+  htmlWithUrl
+    (html_
+       (do head_
+             (do title_ "Casa"
+                 style_ "body{font-family:sans-serif;}")
+           body_
+             (do h1_ "Casa"
+                 h2_ "Content-Addressable Storage Archive"
+                 p_ "Statistics:"
+                 ul_
+                   (do li_
                          (do "Last uploaded blob: "
                              maybe
                                "Never"
                                (\(t, key) -> do
-                                  H.strong (toHtml (show t))
+                                  strong_ (toHtml (show t))
                                   " "
-                                  H.a !
-                                    A.href
-                                      (H.toValue (renderer (MetaR key))) $
-                                    H.code (toHtml (toPathPiece key)))
+                                  url <- lift ask
+                                  a_ [href_ (url (MetaR key))] $
+                                    code_ (toHtml (toPathPiece key)))
                                (fmap
                                   (\(E.Value t, E.Value key) -> (t, key))
                                   (listToMaybe dates))))
-                 H.p (H.a ! A.href (H.toValue (renderer StatsR)) $ "More stats")
-                 H.hr
-                 H.p
+                 url <- lift ask
+                 p_ (a_ [href_ (url StatsR)] "More stats")
+                 hr_ []
+                 p_
                    (do "A service provided by "
-                       H.a ! A.href "https://www.fpcomplete.com/" $
-                         "FP Complete"))))
+                       a_ [href_ "https://www.fpcomplete.com/"] "FP Complete"))))
 
 -- | Get some basic stats based on the logs.
-getStatsR :: Handler Html
+getStatsR :: Handler (Html ())
 getStatsR = do
   do logs <-
        runDB
@@ -219,33 +216,34 @@ getStatsR = do
                     ]
                   E.limit 100
                   pure log)))
-     renderer <- getUrlRender
-     pure
-       (H.html
-          (do H.head
-                (do H.title "Casa stats"
-                    H.style "body{font-family:sans-serif;}")
-              H.body
-                (do H.h1 "Casa stats"
-                    H.table
-                      (do H.thead
-                            (do H.th "Key"
-                                H.th "Pulls"
-                                H.th "Last access")
-                          H.tbody
+     htmlWithUrl
+       (html_
+          (do head_
+                (do title_ "Casa stats"
+                    style_ "body{font-family:sans-serif;}")
+              body_
+                (do h1_ "Casa stats"
+                    table_
+                      (do thead_
+                            (do th_ "Key"
+                                th_ "Pulls"
+                                th_ "Last access")
+                          tbody_
                             (mapM_
                                (\((Entity _ log)) ->
-                                  H.tr
-                                    (do H.td
-                                          (H.a !
-                                           A.href
-                                             (H.toValue
-                                                (renderer
-                                                   (MetaR (accessLogKey log)))) $
-                                           H.code (toHtml (toPathPiece (accessLogKey log))))
-                                        H.td
-                                          (toHtml (show (accessLogCount log)))
-                                        H.td
+                                  tr_
+                                    (do url <- lift ask
+                                        td_
+                                          (a_
+                                             [ href_
+                                                 (url (MetaR (accessLogKey log)))
+                                             ]
+                                             (code_
+                                                (toHtml
+                                                   (toPathPiece
+                                                      (accessLogKey log)))))
+                                        td_ (toHtml (show (accessLogCount log)))
+                                        td_
                                           (toHtml
                                              (show (accessLogLastAccess log)))))
                                logs)))))
@@ -266,31 +264,29 @@ getV1MetadataR key = do
            ])
 
 -- | Get a single blob in a web interface.
-getMetaR :: BlobKey -> Handler Html
+getMetaR :: BlobKey -> Handler (Html ())
 getMetaR key = do
   mblob <- runDB (selectFirst [ContentKey ==. key] [])
   case mblob of
     Nothing -> notFound
     Just (Entity _ blob) -> do
-      renderer <- getUrlRender
-      pure
-        (H.html
-           (do H.head
-                 (do H.title "Meta"
-                     H.style "body{font-family:sans-serif;}")
-               H.body
-                 (do H.h1 (H.code (toHtml (toPathPiece key)))
-                     H.p
-                       ((H.a ! A.href (H.toValue (renderer (KeyR key))) $
-                         "Download raw"))
-                     H.p
-                       (do H.strong "Created: "
+      htmlWithUrl
+        (html_
+           (do url <- lift ask
+               head_
+                 (do title_ "Meta"
+                     style_ "body{font-family:sans-serif;}")
+               body_
+                 (do h1_ (code_ (toHtml (toPathPiece key)))
+                     p_ (a_ [href_ (url (KeyR key))] "Download raw")
+                     p_
+                       (do strong_ "Created: "
                            toHtml (show (contentCreated blob)))
-                     H.p
-                       (do H.strong "Size: "
+                     p_
+                       (do strong_ "Size: "
                            toHtml (show (S.length (contentBlob blob))))
-                     H.p (H.strong "Preview (limited to 512 bytes)")
-                     H.p (H.code (toHtml (show (S.take 512 (contentBlob blob))))))))
+                     p_ (strong_ "Preview (limited to 512 bytes)")
+                     p_ (code_ (toHtml (show (S.take 512 (contentBlob blob))))))))
 
 -- | Get a single blob in a web interface.
 getKeyR :: BlobKey -> Handler TypedContent
