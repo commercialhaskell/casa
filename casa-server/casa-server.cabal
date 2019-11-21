@@ -49,9 +49,11 @@ library
     , cryptonite
     , memory
     , time
-    , blaze-html
     , wai
     , transformers
+    , lucid
+    , mtl
+    , yesod-lucid
 
 executable casa-server
   main-is: Main.hs

@@ -16,3 +16,5 @@ extra-deps:
 - unliftio-0.2.12@sha256:b089fbc2ff2628a963c2c4b12143f2020874e3e5144ffd6c62b25639a0ca1483,3325
 - rio-0.1.12.0@sha256:a0b42682a455ffde6a4d894b135117e379aea7ed1810c2cfed471b8f5879968c,3633
 - ansi-terminal-0.9@sha256:24e357bccd882add0d9caee63136d6b7923aaa9e36ed515097230dca82b0065c,3154
+- git: https://github.com/chrisdone/yesod-lucid.git
+  commit: cde88d0736a44163be70044a109798f578151db3
