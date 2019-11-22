@@ -1,21 +1,19 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
 
 -- | Main entry point.
 
 module Main where
 
-import Casa.Backend
 import Casa.Server
 import Control.Concurrent.Async
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Reader
 import Data.Pool
-import Network.Wai.Handler.Warp (run)
-import Network.Wai.Middleware.Gzip (gzip, def, gzipCheckMime)
+import Casa.Backend
 import System.Environment
 import Yesod
-import Yesod.Static
+import Network.Wai.Handler.Warp (run)
+import Network.Wai.Middleware.Gzip (gzip, def, gzipCheckMime)
 
 -- | Run two servers on different ports, accessing the same app, but
 -- with a different 'appAuthorized' flag. They share the same database
@@ -27,11 +25,7 @@ main = do
   let runWithAuthAndPort pool port authorized = do
         let yapp =
               App
-                { appStatic = $(embed "static/")
-                , appAuthorized = authorized
-                , appPool = pool
-                , appLogging = True
-                }
+                {appAuthorized = authorized, appPool = pool, appLogging = True}
         app <- toWaiApp yapp
         run port (gzip def {gzipCheckMime = const True} app)
   withDBPool

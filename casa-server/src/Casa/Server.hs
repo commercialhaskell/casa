@@ -1,4 +1,3 @@
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE GADTs #-}
@@ -63,7 +62,6 @@ import           Prelude hiding (log)
 import           System.Environment
 import           Yesod hiding (Content, Html, toHtml)
 import           Yesod.Lucid
-import           Yesod.Static
 
 --------------------------------------------------------------------------------
 -- Constants
@@ -80,7 +78,6 @@ data App =
     { appLogging :: !Bool
     , appPool :: !(Pool SqlBackend)
     , appAuthorized :: !AuthResult
-    , appStatic :: !Static
     }
 
 instance YesodPersist App where
@@ -111,10 +108,7 @@ AccessLog
 --------------------------------------------------------------------------------
 -- Routes
 
-staticFiles "static/"
-
 mkYesod "App" [parseRoutesNoCheck|
-  /static StaticR Static appStatic
   / HomeR GET
   /v1/pull V1PullR POST
   /v1/push V1PushR POST
@@ -137,10 +131,8 @@ instance Yesod App where
       HomeR -> pure Authorized
       StatsR -> pure Authorized
       LiveR -> pure Authorized
-      StaticR {} -> pure Authorized
   maximumContentLength _ mroute =
     case mroute of
-      Just StaticR{} -> Just maximumContentLen
       Nothing -> Just maximumContentLen
       Just V1PullR -> Just maximumContentLen
       Just KeyR {} -> Just maximumContentLen
@@ -452,9 +444,8 @@ data Template m = Template
   , title :: Text
   }
 
-template :: MonadReader (Route App -> Text) m => Template m -> HtmlT m ()
-template Template {body, title} = do
-  url <- lift ask
+template :: Monad m => Template m -> HtmlT m ()
+template Template {body, title} =
   html_
     (do head_
           (do title_ (toHtml title)
@@ -463,11 +454,6 @@ template Template {body, title} = do
               meta_
                 [ name_ "viewport"
                 , content_ "width=device-width, initial-scale=1"
-                ]
-              link_
-                [ rel_ "icon"
-                , type_ "image/png"
-                , href_ (url (StaticR favicon_png))
                 ]
               style_
                 "body {\
@@ -489,8 +475,4 @@ template Template {body, title} = do
               hr_ []
               p_
                 (do "A service provided by "
-                    a_
-                      [href_ "https://www.fpcomplete.com/", style_ "color: #01699a"]
-                      (do img_ [src_ (url (StaticR fpco_svg))
-                               ,style_ "height: 1em"]
-                          " FP Complete"))))
+                    a_ [href_ "https://www.fpcomplete.com/"] "FP Complete")))

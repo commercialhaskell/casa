@@ -2,7 +2,6 @@ cabal-version:  1.12
 name:           casa-server
 version:        0.0.0
 build-type:     Simple
-extra-source-files: static/*.svg static/*.png
 
 flag postgresql
   description: Use postgres for storage
@@ -55,7 +54,6 @@ library
     , lucid
     , mtl
     , yesod-lucid
-    , yesod-static
 
 executable casa-server
   main-is: Main.hs
@@ -74,7 +72,6 @@ executable casa-server
     , wai-extra
     , warp
     , wai
-    , yesod-static
 
 test-suite casa-existential-test
   type: exitcode-stdio-1.0
