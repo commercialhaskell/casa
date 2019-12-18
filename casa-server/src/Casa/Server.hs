@@ -468,7 +468,10 @@ template Template {body, title} =
                 \color: #05685b;\
                 \word-break: break-all;\
                 \}\
-                \code {word-break: break-all;}\
+                \code {\
+                \white-space: pre-wrap;\
+                \word-break: break-all;\
+                \}\
                 \hr { border: 1px solid #ccc; }")
         body_
           (do body
