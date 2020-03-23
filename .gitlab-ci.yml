@@ -52,7 +52,7 @@ deploy_prod:
       KUBE_URL="$PROD_V2_KUBE_URL"
       KUBE_TOKEN="$PROD_V2_KUBE_TOKEN"
       KUBE_NAMESPACE="$PROD_V2_KUBE_NAMESPACE"
-    - "$KUBE_CA_PEM" >"$HOME/ca.pem" &&
+    - echo "$KUBE_CA_PEM" >"$HOME/ca.pem" &&
       kubectl config set-cluster cluster --server="$KUBE_URL" --certificate-authority="$HOME/ca.pem" &&
       kubectl config set-credentials cluster --token="$KUBE_TOKEN" && kubectl config set-context cluster --cluster=cluster --user=cluster --namespace="$KUBE_NAMESPACE" &&
       kubectl config use-context cluster
