@@ -47,6 +47,7 @@ deploy_prod:
     HOSTVAR: "${HOST}"
     ENV_SHORT_NAME: "prod"
   script:
+    - mkdir -p /etc/deploy
     - echo "${KUBECONFIG_YAML}" > /etc/deploy/kubeconfig.enc
     - base64 -d </etc/deploy/kubeconfig.enc > ${KUBECONFIG}
     - kubectl set image "deployment/casa-server-prod" casa-server="$DEPLOYMENT_IMAGE"
