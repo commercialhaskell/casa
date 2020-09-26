@@ -22,7 +22,7 @@ library
       base < 10
     , bytestring
     , attoparsec
-    , base16-bytestring
+    , base16-bytestring >= 1
     , text
     , hashable
     , aeson

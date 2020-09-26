@@ -9,7 +9,6 @@ import           Data.Aeson
 import qualified Data.Attoparsec.ByteString as Atto.B
 import qualified Data.Attoparsec.Text as Atto.T
 import           Data.ByteString (ByteString)
-import qualified Data.ByteString as S
 import qualified Data.ByteString.Base16 as Hex
 import qualified Data.ByteString.Builder as S
 import           Data.Hashable
@@ -49,8 +48,8 @@ blobKeyHexParser =
        BlobKey
        (do bytes <- Atto.T.take 64
            case Hex.decode (T.encodeUtf8 bytes) of
-             (result, wrong) | S.null wrong -> pure result
-             _ -> fail "Invalid hex key."))
+             Right result -> pure result
+             Left _ -> fail "Invalid hex key."))
 
 -- | Parse a blob key in binary format.
 blobKeyBinaryParser :: Atto.B.Parser BlobKey
