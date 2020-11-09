@@ -8,8 +8,10 @@ maintainer:     chrisdone@fpcomplete.com
 license:        BSD3
 license-file:   LICENSE
 category: Development
-version:        0.0.0
+version:        0.0.1
 build-type:     Simple
+extra-source-files:
+  ChangeLog.md
 
 library
   exposed-modules:
