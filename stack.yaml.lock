@@ -79,6 +79,13 @@ packages:
   original:
     git: https://github.com/chrisdone/yesod-lucid.git
     commit: cde88d0736a44163be70044a109798f578151db3
+- completed:
+    hackage: base16-bytestring-1.0.0.0@sha256:1ea8ad312ecd773db3488f0810bc2a6182345558bc3be039bfe463d5defee540,2641
+    pantry-tree:
+      size: 595
+      sha256: a24a70a2c79a19503894ee5a4778f184a8c2b9336ad6c376c15d066ae2e14bf3
+  original:
+    hackage: base16-bytestring-1.0.0.0@rev:0
 snapshots:
 - completed:
     size: 500539

@@ -18,3 +18,4 @@ extra-deps:
 - ansi-terminal-0.9@sha256:24e357bccd882add0d9caee63136d6b7923aaa9e36ed515097230dca82b0065c,3154
 - git: https://github.com/chrisdone/yesod-lucid.git
   commit: cde88d0736a44163be70044a109798f578151db3
+- base16-bytestring-1.0.0.0@rev:0
