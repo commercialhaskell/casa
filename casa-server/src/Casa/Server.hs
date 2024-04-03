@@ -14,6 +14,9 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 -- | Casa content-addressable storage archive server.
 
@@ -419,7 +422,7 @@ hashesFromStream =
 -- DB connection
 
 withDBPool ::
-     (IsPersistBackend b, BaseBackend b ~ SqlBackend)
+     (IsPersistBackend b, BaseBackend b ~ SqlBackend, b ~ SqlBackend)
   => (Pool b -> LoggingT IO a)
   -> IO a
 withDBPool cont = do

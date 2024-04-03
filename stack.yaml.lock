@@ -5,90 +5,37 @@
 
 packages:
 - completed:
-    name: stack
-    version: 2.2.0
-    git: https://github.com/commercialhaskell/stack.git
-    pantry-tree:
-      size: 75284
-      sha256: 392e52415503697826e4916d00bed3dd778be50145db53ec6c843d1fbf24f683
-    commit: a3bcd98a281762f8d063fcb72cc1ee6bae9ff5f3
-  original:
-    git: https://github.com/commercialhaskell/stack.git
-    commit: a3bcd98a281762f8d063fcb72cc1ee6bae9ff5f3
-- completed:
+    commit: de8a0b5f88e9974fafb4a6ed5835d1da8f821d80
+    git: https://github.com/commercialhaskell/pantry.git
     name: pantry
-    version: 0.2.0.0
-    git: https://github.com/commercialhaskell/pantry.git
     pantry-tree:
-      size: 3546
       sha256: 323d120275f9d7591c60116c8a6f4faf3e5ef1ed780bfd5bcfb61c9a2a0c0b68
-    commit: de8a0b5f88e9974fafb4a6ed5835d1da8f821d80
+      size: 3546
+    version: 0.2.0.0
   original:
+    commit: de8a0b5f88e9974fafb4a6ed5835d1da8f821d80
     git: https://github.com/commercialhaskell/pantry.git
-    commit: de8a0b5f88e9974fafb4a6ed5835d1da8f821d80
 - completed:
-    hackage: hi-file-parser-0.1.0.0@sha256:3fc95852035c8e0fa6d5f9d22e5108067c8f4816ac84675bddc971b20144a9ae,2317
-    pantry-tree:
-      size: 1182
-      sha256: 8f31d05d60613600b07ad07a9dd203c1495d82903592134d2828b125282d7fb1
-  original:
-    hackage: hi-file-parser-0.1.0.0@sha256:3fc95852035c8e0fa6d5f9d22e5108067c8f4816ac84675bddc971b20144a9ae,2317
-- completed:
-    hackage: http-download-0.1.0.0@sha256:b02d76d28364b74fb90d3ec3c46fd81f9d77bcf71fa40c1d341a7251a0fc40e8,2023
-    pantry-tree:
-      size: 393
-      sha256: 5ca9a5f17b87de5feea9eb26939bf0dea1ef20b9570545feb0b9e54f41ea47ff
-  original:
-    hackage: http-download-0.1.0.0@sha256:b02d76d28364b74fb90d3ec3c46fd81f9d77bcf71fa40c1d341a7251a0fc40e8,2023
-- completed:
-    hackage: rio-prettyprint-0.1.0.0@sha256:764e1a357275c3c62d57c494d038feae01cf745788e7d0e97367ba793c9670c3,1359
-    pantry-tree:
-      size: 479
-      sha256: 42fad9af672080b144bb60eb91af251ab35ce41bb931c44cfb584414648935e5
-  original:
-    hackage: rio-prettyprint-0.1.0.0@sha256:764e1a357275c3c62d57c494d038feae01cf745788e7d0e97367ba793c9670c3,1359
-- completed:
-    hackage: unliftio-0.2.12@sha256:b089fbc2ff2628a963c2c4b12143f2020874e3e5144ffd6c62b25639a0ca1483,3325
-    pantry-tree:
-      size: 2229
-      sha256: 4971b43f3d473eff868eb1a0c359729b49f1779e78c462ba45ef0d1eda677699
-  original:
-    hackage: unliftio-0.2.12@sha256:b089fbc2ff2628a963c2c4b12143f2020874e3e5144ffd6c62b25639a0ca1483,3325
-- completed:
-    hackage: rio-0.1.12.0@sha256:a0b42682a455ffde6a4d894b135117e379aea7ed1810c2cfed471b8f5879968c,3633
-    pantry-tree:
-      size: 4745
-      sha256: 340566441c9d1087f661fb51f95a080ffdf2da8fce6b4b8f86f158f4195894f5
-  original:
-    hackage: rio-0.1.12.0@sha256:a0b42682a455ffde6a4d894b135117e379aea7ed1810c2cfed471b8f5879968c,3633
-- completed:
-    hackage: ansi-terminal-0.9@sha256:24e357bccd882add0d9caee63136d6b7923aaa9e36ed515097230dca82b0065c,3154
-    pantry-tree:
-      size: 1386
-      sha256: ba8e708bbeb1d2d277f40d09627e91cc597b08334b63936c661263c18108d008
-  original:
-    hackage: ansi-terminal-0.9@sha256:24e357bccd882add0d9caee63136d6b7923aaa9e36ed515097230dca82b0065c,3154
-- completed:
+    commit: cde88d0736a44163be70044a109798f578151db3
+    git: https://github.com/chrisdone/yesod-lucid.git
     name: yesod-lucid
-    version: '0.1'
-    git: https://github.com/chrisdone/yesod-lucid.git
     pantry-tree:
-      size: 361
       sha256: ac78649b71c7b3f37070f62658794342f4d1ef9fdbc5a3764e43e931f5a7a86c
-    commit: cde88d0736a44163be70044a109798f578151db3
+      size: 361
+    version: '0.1'
   original:
-    git: https://github.com/chrisdone/yesod-lucid.git
     commit: cde88d0736a44163be70044a109798f578151db3
+    git: https://github.com/chrisdone/yesod-lucid.git
 - completed:
     hackage: base16-bytestring-1.0.0.0@sha256:1ea8ad312ecd773db3488f0810bc2a6182345558bc3be039bfe463d5defee540,2641
     pantry-tree:
-      size: 595
       sha256: a24a70a2c79a19503894ee5a4778f184a8c2b9336ad6c376c15d066ae2e14bf3
+      size: 595
   original:
     hackage: base16-bytestring-1.0.0.0@rev:0
 snapshots:
 - completed:
-    size: 500539
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/13/28.yaml
-    sha256: cdde1bfb38fdee21c6acb73d506e78f7e12e0a73892adbbbe56374ebef4d3adf
-  original: lts-13.28
+    sha256: 8d81505a6de861e167a58534ab62330afb75bfa108735c7db1204f7ef2a39d79
+    size: 491387
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/15/6.yaml
+  original: lts-15.6
