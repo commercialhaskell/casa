@@ -14,6 +14,9 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 -- | Casa content-addressable storage archive server.
 
@@ -419,7 +422,7 @@ hashesFromStream =
 -- DB connection
 
 withDBPool ::
-     (IsPersistBackend b, BaseBackend b ~ SqlBackend)
+     (IsPersistBackend b, BaseBackend b ~ SqlBackend, b ~ SqlBackend)
   => (Pool b -> LoggingT IO a)
   -> IO a
 withDBPool cont = do
@@ -477,5 +480,8 @@ template Template {body, title} =
           (do body
               hr_ []
               p_
-                (do "A service provided by "
-                    a_ [href_ "https://www.fpcomplete.com/"] "FP Complete")))
+                (do "A service created by "
+                    a_ [href_ "https://www.fpcomplete.com/"] "FP Complete"
+                    " in 2019 | Donated to the "
+                    a_ [href_ "https://haskell.foundation"] "Haskell Foundation"
+                    " in 2024")))
