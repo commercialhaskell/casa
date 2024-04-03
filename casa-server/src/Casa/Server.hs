@@ -477,5 +477,8 @@ template Template {body, title} =
           (do body
               hr_ []
               p_
-                (do "A service provided by "
-                    a_ [href_ "https://www.fpcomplete.com/"] "FP Complete")))
+                (do "A service created by "
+                    a_ [href_ "https://www.fpcomplete.com/"] "FP Complete"
+                    " in 2019 | Donated to the "
+                    a_ [href_ "https://haskell.foundation"] "Haskell Foundation"
+                    " in 2024")))
