@@ -5,16 +5,12 @@
 
 packages:
 - completed:
-    commit: de8a0b5f88e9974fafb4a6ed5835d1da8f821d80
-    git: https://github.com/commercialhaskell/pantry.git
-    name: pantry
+    hackage: crypton-0.34@sha256:9e4b50d79d1fba681befa08151db7223d2b4bb72564853e8530e614105d53a1a,14577
     pantry-tree:
-      sha256: 323d120275f9d7591c60116c8a6f4faf3e5ef1ed780bfd5bcfb61c9a2a0c0b68
-      size: 3546
-    version: 0.2.0.0
+      sha256: 85f438e6d328fc2e464c8914a08089ff312044b96ac155a25747512e440e0a12
+      size: 23275
   original:
-    commit: de8a0b5f88e9974fafb4a6ed5835d1da8f821d80
-    git: https://github.com/commercialhaskell/pantry.git
+    hackage: crypton-0.34@sha256:9e4b50d79d1fba681befa08151db7223d2b4bb72564853e8530e614105d53a1a,14577
 - completed:
     commit: cde88d0736a44163be70044a109798f578151db3
     git: https://github.com/chrisdone/yesod-lucid.git
