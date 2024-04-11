@@ -1,8 +1,8 @@
 cabal-version:  1.12
 synopsis:       Types for Casa
-description:    Types for Casa <https://casa.fpcomplete.com/>
+description:    Types for Casa <https://casa.stackage.org/>
 name:           casa-types
-copyright:      2018-2019 FP Complete
+copyright:      2018-2019 FP Complete, 2024 Haskell Foundation
 author:         Chris Done
 maintainer:     chrisdone@fpcomplete.com
 license:        BSD3
