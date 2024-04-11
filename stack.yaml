@@ -1,4 +1,4 @@
-resolver: lts-15.6
+resolver: lts-18.28
 packages:
 - casa-types
 - casa-server
@@ -9,3 +9,8 @@ extra-deps:
 - git: https://github.com/chrisdone/yesod-lucid.git
   commit: cde88d0736a44163be70044a109798f578151db3
 - base16-bytestring-1.0.0.0@rev:0
+
+nix:
+  packages:
+  - postgresql
+  - zlib
