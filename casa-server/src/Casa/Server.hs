@@ -482,8 +482,8 @@ template Template {body, title} =
           (do body
               hr_ []
               p_
-                (do "A service created by "
-                    a_ [href_ "https://www.fpcomplete.com/"] "FP Complete"
-                    " in 2019 | Donated to the "
+                (do "Casa is a service provided by the "
                     a_ [href_ "https://haskell.foundation"] "Haskell Foundation"
-                    " in 2024")))
+                    -- NB: A no-break space (&nbsp;) follows the '│'
+                    " │ Originally developed by "
+                    a_ [href_ "https://www.fpcomplete.com/"] "FP Complete")))
