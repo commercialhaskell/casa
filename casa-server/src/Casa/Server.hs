@@ -451,7 +451,7 @@ data Template m = Template
 
 template :: Monad m => Template m -> HtmlT m ()
 template Template {body, title} =
-  html_
+  doctypehtml_
     (do head_
           (do title_ (toHtml title)
               meta_
