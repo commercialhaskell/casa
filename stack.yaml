@@ -11,6 +11,4 @@ extra-deps:
 - base16-bytestring-1.0.0.0@rev:0
 
 nix:
-  packages:
-  - postgresql
-  - zlib
+  shell-file: shell.nix
