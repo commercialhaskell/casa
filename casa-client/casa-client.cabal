@@ -2,7 +2,7 @@ cabal-version:  1.12
 name:           casa-client
 synopsis:       Client for Casa
 description:    Client for Casa <https://casa.stackage.org/>
-version:        0.0.2
+version:        0.0.3
 copyright:      2018-2019 FP Complete, 2024 Haskell Foundation
 author:         Chris Done
 maintainer:     chrisdone@fpcomplete.com
@@ -10,6 +10,8 @@ license:        BSD3
 license-file:   LICENSE
 category: Development
 build-type:     Simple
+extra-source-files:
+    CHANGELOG.md
 
 library
   exposed-modules:
