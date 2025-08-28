@@ -35,7 +35,6 @@ import           Data.Conduit.ByteString.Builder
 import qualified Data.Conduit.List as CL
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HM
-import           Data.List
 import           Data.Monoid ((<>))
 import           Data.Typeable
 import           Language.Haskell.TH
