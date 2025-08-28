@@ -35,8 +35,6 @@ import           Data.Conduit.ByteString.Builder
 import qualified Data.Conduit.List as CL
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HM
-import           Data.Monoid ((<>))
-import           Data.Typeable
 import           Language.Haskell.TH
 import           Language.Haskell.TH.Lift
 import           Network.HTTP.Client.Conduit (requestBodySourceChunked)
@@ -49,13 +47,13 @@ data PullException
   = AttoParseError ParseError
   | BadHttpStatus Status
   | TooManyReturnedKeys Int
-  deriving (Show, Typeable)
+  deriving Show
 instance Exception PullException
 
 -- | An exception from blob consuming/sending.
 data PushException
   = PushBadHttpStatus Status
-  deriving (Show, Typeable)
+  deriving Show
 instance Exception PushException
 
 -- | The URL prefix for a casa repo.
