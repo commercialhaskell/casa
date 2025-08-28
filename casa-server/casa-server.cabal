@@ -46,7 +46,7 @@ library
     , resource-pool
     , monad-logger
     , esqueleto
-    , cryptonite
+    , crypton
     , memory
     , time
     , wai
