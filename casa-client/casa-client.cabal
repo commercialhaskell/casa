@@ -4,6 +4,8 @@ synopsis:       Client for Casa
 description:    Client for Casa <https://casa.stackage.org/>
 version:        0.0.3
 copyright:      2018-2019 FP Complete, 2024 Haskell Foundation
+homepage:       https://github.com/commercialhaskell/casa
+bug-reports:    https://github.com/commercialhaskell/casa/issues
 author:         Chris Done
 maintainer:     chrisdone@fpcomplete.com
 license:        BSD3
@@ -12,6 +14,11 @@ category: Development
 build-type:     Simple
 extra-source-files:
     CHANGELOG.md
+
+source-repository head
+  type: git
+  location: https://github.com/commercialhaskell/casa
+  subdir: casa-client
 
 library
   exposed-modules:

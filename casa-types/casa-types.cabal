@@ -3,15 +3,22 @@ synopsis:       Types for Casa
 description:    Types for Casa <https://casa.stackage.org/>
 name:           casa-types
 copyright:      2018-2019 FP Complete, 2024 Haskell Foundation
+homepage:       https://github.com/commercialhaskell/casa
+bug-reports:    https://github.com/commercialhaskell/casa/issues
 author:         Chris Done
 maintainer:     chrisdone@fpcomplete.com
 license:        BSD3
 license-file:   LICENSE
 category: Development
-version:        0.0.2
+version:        0.0.3
 build-type:     Simple
 extra-source-files:
   ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/commercialhaskell/casa
+  subdir: casa-client
 
 library
   exposed-modules:
