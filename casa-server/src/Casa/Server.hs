@@ -1,9 +1,10 @@
+{-# OPTIONS_GHC -Wno-type-defaults        #-}
+
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NamedFieldPuns #-}
-{-# OPTIONS_GHC -fno-warn-type-defaults #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE LambdaCase #-}
@@ -18,6 +19,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeOperators #-}
 
 -- | Casa content-addressable storage archive server.
 
@@ -38,7 +40,7 @@ import           Casa.Backend
 import           Casa.Types
 import           Control.Applicative
 import           Control.Monad.Logger
-import           Control.Monad.Reader
+import           Control.Monad.Reader ( ask )
 import qualified Crypto.Hash as Crypto
 import qualified Data.Attoparsec.Binary as Atto.B
 import qualified Data.Attoparsec.ByteString as Atto.B
@@ -52,6 +54,7 @@ import           Data.Conduit
 import           Data.Conduit.Attoparsec
 import qualified Data.Conduit.List as CL
 import           Data.Foldable
+import           Data.Functor ( void )
 import           Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
 import           Data.Maybe
@@ -60,7 +63,7 @@ import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Time
 import           Data.Word
-import qualified Database.Esqueleto as E
+import qualified Database.Esqueleto.Compat as E
 import           Lucid
 import           Prelude hiding (log)
 import           System.Environment
