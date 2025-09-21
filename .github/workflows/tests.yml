@@ -1,0 +1,71 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+    - master
+  workflow_dispatch:
+
+# As of 2025-09-21, ubuntu-latest and windows-latest come with Stack 3.7.1.
+# However, macos-latest does not come with Haskell tools.
+
+jobs:
+  build:
+    name: CI
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+        - ubuntu-latest
+        stack-yaml:
+        - stack-ghc-8.10.7.yaml
+        - stack-ghc-9.10.3.yaml
+        - stack-ghc-9.12.2.yaml
+        include:
+        # macos-latest provides macOS/AArch64 (M1)
+        - os: macos-latest
+          stack-yaml: stack-ghc-9.10.3.yaml
+        - os: windows-latest
+          stack-yaml: stack-ghc-9.10.3.yaml
+    steps:
+    - name: Clone project
+      uses: actions/checkout@v4
+    - name: Cache dependencies on Unix-like OS
+      if: startsWith(runner.os, 'Linux') || startsWith(runner.os, 'macOS')
+      uses: actions/cache@v4
+      with:
+        path: ~/.stack
+        key: ${{ runner.os }}-${{ runner.arch }}-${{ matrix.stack-yaml }}
+    - name: Cache dependencies on Windows
+      if: startsWith(runner.os, 'Windows')
+      uses: actions/cache@v4
+      with:
+        path: |
+           ~\AppData\Roaming\stack
+           ~\AppData\Local\Programs\stack
+        key: ${{ runner.os }}-${{ runner.arch }}-${{ matrix.stack-yaml }}
+    - name: Build and run tests
+      shell: bash
+      run: |
+        set -ex
+
+        if [[ "${{ matrix.os }}" == "macos-latest" ]]
+        then
+          # macos-latest does not include Haskell tools as at 2025-09-21.
+          curl -sSL https://get.haskellstack.org/ | sh
+          # macos-latest does not include PostgreSQL
+          brew install postgresql@17
+          export LDFLAGS="-L/opt/homebrew/opt/postgresql@17/lib"
+          export CPPFLAGS="-I/opt/homebrew/opt/postgresql@17/include"
+          fi
+
+        if [[ "${{ matrix.os }}" == "windows-latest" ]]
+        then
+          # The Stack-supplied MSYS2 does not include libraries for use with
+          # PostgreSQL by default.
+          stack exec -- pacman -S --needed --noconfirm mingw-w64-x86_64-postgresql
+        fi
+
+        stack --stack-yaml ${{ matrix.stack-yaml }} build
