@@ -1,12 +1,15 @@
-snapshot: lts-24.7 # GHC 9.10.2
-packages:
-- casa-types
-- casa-server
-- casa-client
+snapshot: lts-24.10 # GHC 9.10.2
+compiler: ghc-9.10.3
+compiler-check: match-exact
 
 extra-deps:
 - git: https://github.com/chrisdone/yesod-lucid.git
   commit: cde88d0736a44163be70044a109798f578151db3
+
+packages:
+- casa-types
+- casa-server
+- casa-client
 
 nix:
   shell-file: shell.nix
