@@ -55,10 +55,12 @@ jobs:
         then
           # macos-latest does not include Haskell tools as at 2025-09-21.
           curl -sSL https://get.haskellstack.org/ | sh
-          # macos-latest does not include PostgreSQL
-          brew install postgresql@17
-          export LDFLAGS="-L/opt/homebrew/opt/postgresql@17/lib"
-          export CPPFLAGS="-I/opt/homebrew/opt/postgresql@17/include"
+
+          # macos-latest does not include PostgreSQL libraries
+          brew update
+          brew install libpq
+          brew link --force libpq
+          echo "PKG_CONFIG_PATH=$(brew --prefix libpq)/lib/pkgconfig" >> $GITHUB_ENV
           fi
 
         if [[ "${{ matrix.os }}" == "windows-latest" ]]
