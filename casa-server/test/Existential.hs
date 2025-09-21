@@ -1,10 +1,11 @@
-{-# LANGUAGE Strict #-}
-{-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE StandaloneDeriving #-}
+{-# OPTIONS_GHC -Wno-orphans      #-}
+{-# OPTIONS_GHC -Wno-deprecations #-}
+
 {-# LANGUAGE DisambiguateRecordFields #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# OPTIONS_GHC -fno-warn-deprecations #-}
+{-# LANGUAGE NamedFieldPuns           #-}
+{-# LANGUAGE OverloadedStrings        #-}
+{-# LANGUAGE StandaloneDeriving       #-}
+{-# LANGUAGE Strict                   #-}
 
 -- | Existential tests.
 module Main where
@@ -25,7 +26,7 @@ import qualified Data.Conduit.List as CL
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Map.Strict as M
 import           Data.Pool
-import           Data.Text (Text)
+import           Data.Text ( Text )
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import           Data.Time
@@ -43,7 +44,7 @@ import qualified Network.Wai.Handler.Warp as Warp
 import qualified Pantry
 import qualified Pantry.Internal as Pantry
 import qualified Pantry.SHA256 as Pantry
-import           RIO hiding (bracketOnError, withAsync, race)
+import           RIO hiding ( bracketOnError, race, withAsync )
 import           RIO.PrettyPrint.StylesUpdate
 import           RIO.Process
 import qualified Stack.Build.Target

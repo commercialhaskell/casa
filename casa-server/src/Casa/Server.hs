@@ -1,38 +1,38 @@
-{-# OPTIONS_GHC -Wno-type-defaults        #-}
+{-# OPTIONS_GHC -Wno-type-defaults #-}
 
-{-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE BangPatterns               #-}
+{-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE DerivingStrategies         #-}
+{-# LANGUAGE ExistentialQuantification  #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ViewPatterns #-}
-{-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE LambdaCase                 #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE NamedFieldPuns             #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE QuasiQuotes                #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE StandaloneDeriving         #-}
+{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TupleSections              #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE TypeOperators              #-}
+{-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE ViewPatterns               #-}
 
 -- | Casa content-addressable storage archive server.
 
 module Casa.Server
-  ( App(..)
+  ( App (..)
   , resourcesApp
   , Widget
   , hashesFromStream
   , withDBPool
   , migrateAll
-  , Content(..)
+  , Content (..)
   , ContentId
-  , AccessLog(..)
+  , AccessLog (..)
   , AccessLogId
   ) where
 
@@ -55,19 +55,19 @@ import           Data.Conduit.Attoparsec
 import qualified Data.Conduit.List as CL
 import           Data.Foldable
 import           Data.Functor ( void )
-import           Data.List.NonEmpty (NonEmpty(..))
+import           Data.List.NonEmpty ( NonEmpty (..) )
 import qualified Data.List.NonEmpty as NE
 import           Data.Maybe
 import           Data.Pool
-import           Data.Text (Text)
+import           Data.Text ( Text )
 import qualified Data.Text as T
 import           Data.Time
 import           Data.Word
 import qualified Database.Esqueleto.Compat as E
 import           Lucid
-import           Prelude hiding (log)
+import           Prelude hiding ( log )
 import           System.Environment
-import           Yesod hiding (Content, Html, toHtml)
+import           Yesod hiding ( Content, Html, toHtml )
 import           Yesod.Lucid
 
 --------------------------------------------------------------------------------
@@ -88,10 +88,11 @@ data App =
     }
 
 instance YesodPersist App where
-    type YesodPersistBackend App = SqlBackend
-    runDB action = do
-        App {appPool} <- getYesod
-        runSqlPool action appPool
+  type YesodPersistBackend App = SqlBackend
+
+  runDB action = do
+    App {appPool} <- getYesod
+    runSqlPool action appPool
 
 instance YesodPersistRunner App where
   getDBRunner = defaultGetDBRunner appPool
@@ -180,75 +181,79 @@ getHomeR = do
                E.limit 1
                pure (content E.^. ContentCreated, content E.^. ContentKey))))
   htmlWithUrl
-    (template
-       Template
-         { title = "Casa"
-         , body =
-             do h1_ "Casa"
-                p_ (em_ "(Content-Addressable Storage Archive)")
-                p_
-                  ( do "Last uploaded blob: "
-                       maybe
-                         "Never"
-                         ( (\(t, key) -> do
-                             strong_ (toHtml (show t))
-                             " "
-                             url <- lift ask
-                             a_ [href_ (url (MetaR key))] $
-                               code_ (toHtml (toPathPiece key)))
-                         . (\(E.Value t, E.Value key) -> (t, key))
-                         )
-                         (listToMaybe dates)
+    ( template
+        Template
+          { title = "Casa"
+          , body = do
+              h1_ "Casa"
+              p_ (em_ "(Content-Addressable Storage Archive)")
+              p_ $ do
+                "Last uploaded blob: "
+                maybe
+                  "Never"
+                  ( (\(t, key) -> do
+                      strong_ (toHtml (show t))
+                      " "
+                      url <- lift ask
+                      a_ [href_ (url (MetaR key))] $
+                        code_ (toHtml (toPathPiece key)))
+                  . (\(E.Value t, E.Value key) -> (t, key))
                   )
-                url <- lift ask
-                p_ (a_ [href_ (url StatsR)] "More statistics")
-         })
+                  (listToMaybe dates)
+
+              url <- lift ask
+              p_ (a_ [href_ (url StatsR)] "More statistics")
+          }
+    )
 
 -- | Get some basic stats based on the logs.
 getStatsR :: Handler (Html ())
 getStatsR = do
-  do logs <-
-       runDB
-         (E.select
-            (E.from
-               (\log -> do
+  logs <-
+    runDB
+      ( E.select
+          ( E.from
+              ( \log -> do
                   E.orderBy
                     [ E.desc (log E.^. AccessLogCount)
                     , E.desc (log E.^. AccessLogLastAccess)
                     ]
                   E.limit 100
-                  pure log)))
-     htmlWithUrl
-       (template
-          Template
-            { title = "Stats"
-            , body =
-                do h1_ "Casa stats"
-                   table_
-                     (do thead_
-                           (do th_ "Key"
-                               th_ "Pulls"
-                               th_ "Last access")
-                         tbody_
-                           (mapM_
-                              (\((Entity _ log)) ->
-                                 tr_
-                                   (do url <- lift ask
-                                       td_
-                                         (a_
-                                            [ href_
-                                                (url (MetaR (accessLogKey log)))
-                                            ]
-                                            (code_
-                                               (toHtml
-                                                  (toPathPiece
-                                                     (accessLogKey log)))))
-                                       td_ (toHtml (show (accessLogCount log)))
-                                       td_
-                                         (toHtml
-                                            (show (accessLogLastAccess log)))))
-                              logs))
-            })
+                  pure log
+              )
+          )
+      )
+  htmlWithUrl
+    ( template
+        Template
+          { title = "Stats"
+          , body = do
+              h1_ "Casa stats"
+              table_ $ do
+                thead_ $ do
+                  th_ "Key"
+                  th_ "Pulls"
+                  th_ "Last access"
+                tbody_ $
+                  mapM_
+                    ( \(Entity _ log) ->
+                        tr_ $ do
+                          url <- lift ask
+                          td_
+                            ( a_
+                                [ href_
+                                    (url (MetaR (accessLogKey log)))
+                                ]
+                                ( code_
+                                    (toHtml (toPathPiece (accessLogKey log)))
+                                )
+                            )
+                          td_ (toHtml (show (accessLogCount log)))
+                          td_ (toHtml (show (accessLogLastAccess log)))
+                    )
+                    logs
+          }
+    )
 
 -- | Get a single blob in a web interface.
 getV1MetadataR :: BlobKey -> Handler Value
@@ -258,12 +263,13 @@ getV1MetadataR key = do
     Nothing -> notFound
     Just (Entity _ blob) ->
       pure
-        (object
-           [ "key" .= contentKey blob
-           , "created" .= contentCreated blob
-           , "length" .= S.length (contentBlob blob)
-           , "preview" .= show (S.take 80 (contentBlob blob))
-           ])
+        ( object
+            [ "key" .= contentKey blob
+            , "created" .= contentCreated blob
+            , "length" .= S.length (contentBlob blob)
+            , "preview" .= show (S.take 80 (contentBlob blob))
+            ]
+        )
 
 -- | Get a single blob in a web interface.
 getMetaR :: BlobKey -> Handler (Html ())
@@ -273,41 +279,46 @@ getMetaR key = do
     Nothing -> notFound
     Just (Entity _ blob) -> do
       htmlWithUrl
-        (template
-           Template
-             { title = "Meta"
-             , body =
-                 do url <- lift ask
-                    h1_ (code_ (toHtml (toPathPiece key)))
-                    p_ (a_ [href_ (url (KeyR key))] "Download raw")
-                    p_
-                      (do strong_ "Created: "
-                          toHtml (show (contentCreated blob)))
-                    p_
-                      (do strong_ "Size: "
-                          toHtml (show (S.length (contentBlob blob))))
-                    p_ (strong_ "Preview (limited to 512 bytes)")
-                    p_ (code_ (toHtml (show (S.take 512 (contentBlob blob)))))
-             })
+        ( template
+            Template
+              { title = "Meta"
+              , body = do
+                  url <- lift ask
+                  h1_ (code_ (toHtml (toPathPiece key)))
+                  p_ (a_ [href_ (url (KeyR key))] "Download raw")
+                  p_ $ do
+                    strong_ "Created: "
+                    toHtml (show (contentCreated blob))
+                  p_ $ do
+                    strong_ "Size: "
+                    toHtml (show (S.length (contentBlob blob)))
+                  p_ (strong_ "Preview (limited to 512 bytes)")
+                  p_ (code_ (toHtml (show (S.take 512 (contentBlob blob)))))
+              }
+        )
 
 -- | Get a single blob in a web interface.
 getKeyR :: BlobKey -> Handler TypedContent
 getKeyR blobKey = do
   contents <-
     runDB
-      (E.select
-         (E.from
-            (\content -> do
-               E.where_ (content E.^. ContentKey E.==. E.val blobKey)
-               return (content E.^. ContentBlob))))
+      ( E.select
+          ( E.from
+              ( \content -> do
+                  E.where_ (content E.^. ContentKey E.==. E.val blobKey)
+                  return (content E.^. ContentBlob)
+              )
+          )
+      )
   logAccesses (pure blobKey)
   case listToMaybe contents of
     Nothing -> notFound
     Just (E.Value bytes) ->
       pure
-        (TypedContent
-           "application/octet-stream"
-           (ContentBuilder (S.byteString bytes) (Just (S.length bytes))))
+        ( TypedContent
+            "application/octet-stream"
+            (ContentBuilder (S.byteString bytes) (Just (S.length bytes)))
+        )
 
 -- | Push a batch of blobs.
 postV1PushR :: Handler TypedContent
@@ -324,13 +335,16 @@ postV1PushR = do
                 invalidArgs [T.pack ("Invalid (len,blob) pair: " ++ show err)]
               Right (blobKey, blob) ->
                 lift
-                  (void
-                     (insertUnique
-                        (Content
-                           { contentCreated = now
-                           , contentKey = blobKey
-                           , contentBlob = blob
-                           })))
+                  ( void
+                      ( insertUnique
+                          ( Content
+                              { contentCreated = now
+                              , contentKey = blobKey
+                              , contentBlob = blob
+                              }
+                          )
+                      )
+                  )
         )
     )
 
@@ -342,22 +356,26 @@ postV1PullR = do
   logAccesses keys -- TODO: Put this in another thread later.
   let source =
         E.selectSource
-          (E.from
-             (\content -> do
-                E.where_
-                  (content E.^. ContentKey `E.in_` E.valList (toList keys))
-                return (content E.^. ContentKey, content E.^. ContentBlob)))
+          ( E.from
+              ( \content -> do
+                  E.where_
+                    (content E.^. ContentKey `E.in_` E.valList (toList keys))
+                  return (content E.^. ContentKey, content E.^. ContentBlob)
+              )
+          )
   -- We return a stream of key+blob pairs in binary format. The client
   -- knows how long the hash should be and how long the blob should be
   -- based on the hash.
   respondSourceDB
     "application/octet-stream"
-    (source .|
-     CL.concatMap
-       (\(E.Value blobKey, E.Value blob) ->
-          [ Chunk (blobKeyToBuilder blobKey <> SB.byteString blob)
-          , Flush -- Do we want to flush after every blob?
-          ]))
+    (  source
+    .| CL.concatMap
+         ( \(E.Value blobKey, E.Value blob) ->
+             [ Chunk (blobKeyToBuilder blobKey <> SB.byteString blob)
+             , Flush -- Do we want to flush after every blob?
+             ]
+         )
+    )
 
 --------------------------------------------------------------------------------
 -- Access logger
@@ -371,11 +389,12 @@ logAccesses keys = do
       ( \key ->
           upsertBy
             (AccessUnqiueKey key)
-            (AccessLog
-               { accessLogKey = key
-               , accessLogCount = 1
-               , accessLogLastAccess = now
-               })
+            ( AccessLog
+                { accessLogKey = key
+                , accessLogCount = 1
+                , accessLogLastAccess = now
+                }
+            )
             [AccessLogLastAccess =. now, AccessLogCount +=. 1]
       )
       keys
@@ -393,13 +412,14 @@ blobsFromBody = do
 
 -- | Read blobs from a stream.
 blobsFromStream ::
-     Monad m => ConduitT ByteString (Either ParseError (BlobKey, ByteString)) m ()
+     Monad m
+  => ConduitT ByteString (Either ParseError (BlobKey, ByteString)) m ()
 blobsFromStream = conduitParserEither lenBlobParser .| CL.map (fmap snd)
-  where
-    lenBlobParser = do
-      len <- fmap fromIntegral Atto.B.anyWord64be
-      bytes <- Atto.B.take len
-      pure (BlobKey (sha256Hash bytes), bytes)
+ where
+  lenBlobParser = do
+    len <- fmap fromIntegral Atto.B.anyWord64be
+    bytes <- Atto.B.take len
+    pure (BlobKey (sha256Hash bytes), bytes)
 
 -- | Read the list of hashes from the body.
 keyLenPairsFromBody ::
@@ -418,12 +438,13 @@ keyLenPairsFromBody = do
 
 -- | Read hashes from a stream.
 hashesFromStream ::
-     Monad m => ConduitT ByteString o m (Either ParseError [(BlobKey, Int)])
+     Monad m
+  => ConduitT ByteString o m (Either ParseError [(BlobKey, Int)])
 hashesFromStream =
   sinkParserEither (some keyValueParser)
-  where
-    keyValueParser =
-      (,) <$> blobKeyBinaryParser <*> fmap fromIntegral Atto.B.anyWord64be
+ where
+  keyValueParser =
+    (,) <$> blobKeyBinaryParser <*> fmap fromIntegral Atto.B.anyWord64be
 
 --------------------------------------------------------------------------------
 -- DB connection
@@ -435,9 +456,10 @@ withDBPool ::
 withDBPool cont = do
   dbstr <- getEnv "DBCONN"
   runStdoutLoggingT
-    (filterLogger
-       (\_src _lvl -> False)
-       (withBackendPool (S8.pack dbstr) 10 cont))
+    ( filterLogger
+        (\_src _lvl -> False)
+        (withBackendPool (S8.pack dbstr) 10 cont)
+    )
 
 --------------------------------------------------------------------------------
 -- Hashing
@@ -456,39 +478,39 @@ data Template m = Template
 
 template :: Monad m => Template m -> HtmlT m ()
 template Template {body, title} =
-  doctypehtml_
-    (do head_
-          (do title_ (toHtml title)
-              meta_
-                [httpEquiv_ "Content-Type", content_ "text/html; charset=UTF-8"]
-              meta_
-                [ name_ "viewport"
-                , content_ "width=device-width, initial-scale=1"
-                ]
-              style_
-                "body {\
-                \font-family: 'Lato', sans-serif; \
-                \background: #f0f0f0;\
-                \}\
-                \a {\
-                \color: #019a77;\
-                \text-decoration: none;\
-                \}\
-                \h1, h2, h3, h4, h5 {\
-                \color: #05685b;\
-                \word-break: break-all;\
-                \}\
-                \code {\
-                \white-space: pre-wrap;\
-                \word-break: break-all;\
-                \}\
-                \hr { border: 1px solid #ccc; }")
-        body_
-          (do body
-              hr_ []
-              p_
-                (do "Casa is a service provided by the "
-                    a_ [href_ "https://haskell.foundation"] "Haskell Foundation"
-                    -- NB: A no-break space (&nbsp;) follows the '│'
-                    " │ Originally developed by "
-                    a_ [href_ "https://www.fpcomplete.com/"] "FP Complete")))
+  doctypehtml_ $ do
+    head_ $ do
+      title_ (toHtml title)
+      meta_
+        [httpEquiv_ "Content-Type", content_ "text/html; charset=UTF-8"]
+      meta_
+        [ name_ "viewport"
+        , content_ "width=device-width, initial-scale=1"
+        ]
+      style_
+        "body {\
+        \font-family: 'Lato', sans-serif; \
+        \background: #f0f0f0;\
+        \}\
+        \a {\
+        \color: #019a77;\
+        \text-decoration: none;\
+        \}\
+        \h1, h2, h3, h4, h5 {\
+        \color: #05685b;\
+        \word-break: break-all;\
+        \}\
+        \code {\
+        \white-space: pre-wrap;\
+        \word-break: break-all;\
+        \}\
+        \hr { border: 1px solid #ccc; }"
+    body_ $ do
+      body
+      hr_ []
+      p_ $ do
+        "Casa is a service provided by the "
+        a_ [href_ "https://haskell.foundation"] "Haskell Foundation"
+        -- NB: A no-break space (&nbsp;) follows the '│'
+        " │ Originally developed by "
+        a_ [href_ "https://www.fpcomplete.com/"] "FP Complete"
