@@ -1,0 +1,15 @@
+snapshot: lts-18.28 # GHC 8.10.7
+
+extra-deps:
+- base16-bytestring-1.0.0.0@sha256:1ea8ad312ecd773db3488f0810bc2a6182345558bc3be039bfe463d5defee540,2641
+- crypton-0.34@sha256:9e4b50d79d1fba681befa08151db7223d2b4bb72564853e8530e614105d53a1a,14577
+- git: https://github.com/chrisdone/yesod-lucid.git
+  commit: cde88d0736a44163be70044a109798f578151db3
+
+packages:
+- casa-types
+- casa-server
+- casa-client
+
+nix:
+  shell-file: shell.nix
