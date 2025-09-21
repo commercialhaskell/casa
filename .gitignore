@@ -21,3 +21,6 @@ cabal.sandbox.config
 \#*
 casa.cabal
 .dir-locals.el
+
+# VS Code-related
+.VSCodeCounter/

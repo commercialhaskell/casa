@@ -1,7 +1,16 @@
 cabal-version:  1.12
 name:           casa-server
-version:        0.0.0
+version:        0.0.1
+homepage:       https://github.com/commercialhaskell/casa
+bug-reports:    https://github.com/commercialhaskell/casa/issues
 build-type:     Simple
+extra-source-files:
+    CHANGELOG.md
+
+source-repository head
+  type: git
+  location: https://github.com/commercialhaskell/casa
+  subdir: casa-server
 
 flag postgresql
   description: Use postgres for storage
@@ -46,7 +55,7 @@ library
     , resource-pool
     , monad-logger
     , esqueleto
-    , cryptonite
+    , crypton
     , memory
     , time
     , wai

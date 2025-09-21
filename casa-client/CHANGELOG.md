@@ -1,4 +1,4 @@
-# ChangeLog for `casa-types`
+# Change log for `casa-client`
 
 All notable changes to this project will be documented in this file.
 
@@ -8,8 +8,6 @@ and this project adheres to the
 
 ## 0.0.3
 
+* Drop support for GHC versions before GHC 8.4.
+* Add `CHANGELOG.md`.
 * Add URLs to Cabal file.
-
-## 0.0.2
-
-* Move to base16-bytestring 1.0
