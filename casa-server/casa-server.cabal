@@ -60,7 +60,7 @@ library
     , crypton
     , memory
     , time
-    , wai
+    , wai >= 3.2
     , transformers
     , lucid
     , mtl
@@ -75,14 +75,17 @@ executable casa-server
     build-depends: persistent-postgresql
   if flag(sqlite)
     build-depends: persistent-sqlite
-  build-depends: base, yesod, casa-server
+  build-depends:
+      base >= 4.12
+    , casa-server
     , bytestring
     , resource-pool
     , transformers
     , async
     , wai-extra
-    , warp
-    , wai
+    , warp >= 3.3.26
+    , wai >= 3.2
+    , yesod
 
 test-suite casa-existential-test
   type: exitcode-stdio-1.0
@@ -95,7 +98,7 @@ test-suite casa-existential-test
   if flag(sqlite)
     build-depends: persistent-sqlite
   build-depends:
-      base
+      base >= 4.12
     , casa-server
     , hspec
     , conduit
@@ -105,8 +108,8 @@ test-suite casa-existential-test
     , bytestring
     , async
     , network
-    , wai
-    , warp
+    , wai >= 3.2
+    , warp >= 3.3.26
     , yesod
     , network-bsd
     , unordered-containers

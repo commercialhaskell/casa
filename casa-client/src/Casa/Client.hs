@@ -1,4 +1,5 @@
-{-# LANGUAGE DeriveLift #-}
+{-# LANGUAGE CPP               #-}
+{-# LANGUAGE DeriveLift        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 -- |
@@ -33,9 +34,12 @@ import           Data.Conduit.ByteString.Builder
 import qualified Data.Conduit.List as CL
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HM
+#if !MIN_VERSION_base(4,20,0)
+import           Data.Foldable ( foldl' )
+#endif
 import           Language.Haskell.TH
 import           Language.Haskell.TH.Lift
-import           Network.HTTP.Client.Conduit (requestBodySourceChunked)
+import           Network.HTTP.Client.Conduit ( requestBodySourceChunked )
 import           Network.HTTP.Simple
 import           Network.HTTP.Types
 import           Network.URI
