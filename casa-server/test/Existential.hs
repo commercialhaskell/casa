@@ -1,4 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE Strict #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE StandaloneDeriving #-}
@@ -41,7 +40,7 @@ import qualified Distribution.Version as Cabal
 import qualified Network.BSD as Network
 import qualified Network.Socket as Network
 import qualified Network.Wai.Handler.Warp as Warp
-import qualified Pantry as Pantry
+import qualified Pantry
 import qualified Pantry.Internal as Pantry
 import qualified Pantry.SHA256 as Pantry
 import           RIO hiding (bracketOnError, withAsync, race)
@@ -149,41 +148,48 @@ integrationSpec = do
        [ it
          ("Pull " ++ "(max per request: " ++ show maxPerRequest ++ ")")
          (shouldReturn
-            (do (port, runner) <-
-                  withDBPool
-                    (\pool ->
-                       liftIO
-                         (runWarpOnFreePort
-                            (App
-                               { appAuthorized =
-                                   Unauthorized "Not needed in this test"
-                               , appLogging = False
-                               , appPool = pool
-                               })))
-                repo <-
-                  either
-                    error
-                    pure
-                    (parseCasaRepoPrefix ("http://localhost:" ++ show port))
-                withAsync
-                  runner
-                  (const
-                     (runConduitRes
-                        (blobsSource
-                           (SourceConfig
-                              { sourceConfigUrl = repo
-                              , sourceConfigBlobs =
-                                  (HM.fromList
-                                     [ ( partialKey
-                                           "334d016f755cd6dc58c53a86e183882f8ec14f52fb05345887c8a5edd42c87b7"
-                                       , 6)
-                                     , ( partialKey
-                                           "514b6bb7c846ecfb8d2d29ef0b5c79b63e6ae838f123da936fe827fda654276c"
-                                       , 6)
-                                     ])
-                              , sourceConfigMaxBlobsPerRequest = maxPerRequest
-                              }) .|
-                         fmap HM.fromList CL.consume))))
+            ( do (port, runner) <-
+                   withDBPool
+                     (\pool ->
+                        liftIO
+                          (runWarpOnFreePort
+                             (App
+                                { appAuthorized =
+                                    Unauthorized "Not needed in this test"
+                                , appLogging = False
+                                , appPool = pool
+                                })))
+                 repo <-
+                   either
+                     error
+                     pure
+                     (parseCasaRepoPrefix ("http://localhost:" ++ show port))
+                 withAsync
+                   runner
+                   ( const
+                       ( runConduitRes
+                           ( blobsSource
+                                  ( SourceConfig
+                                      { sourceConfigUrl = repo
+                                      , sourceConfigBlobs =
+                                          HM.fromList
+                                             [ ( partialKey
+                                                   "334d016f755cd6dc58c53a86e183882f8ec14f52fb05345887c8a5edd42c87b7"
+                                               , 6
+                                               )
+                                             , ( partialKey
+                                                   "514b6bb7c846ecfb8d2d29ef0b5c79b63e6ae838f123da936fe827fda654276c"
+                                               , 6
+                                               )
+                                             ]
+                                      , sourceConfigMaxBlobsPerRequest = maxPerRequest
+                                      }
+                                  )
+                              .| fmap HM.fromList CL.consume
+                          )
+                        )
+                   )
+            )
             (HM.fromList
                [ ( partialKey
                      "334d016f755cd6dc58c53a86e183882f8ec14f52fb05345887c8a5edd42c87b7"
@@ -345,7 +351,7 @@ makePackageLocationImmutable uuid =
       case Pantry.mkSafeFilePath (fromString pkgName <> ".cabal") of
         Nothing ->
           error
-            ("makePackageLocationImmutable: Invalid file path. This is unexpected!")
+            "makePackageLocationImmutable: Invalid file path. This is unexpected!"
         Just fp -> fp
     pkgName = "dummy" <> filter (/= '-') (UUID.toString uuid)
     pkgVersion = Cabal.mkVersion [0]

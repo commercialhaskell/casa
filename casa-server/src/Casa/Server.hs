@@ -13,7 +13,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -72,7 +71,7 @@ import           Yesod.Lucid
 -- Constants
 
 maximumContentLen :: Word64
-maximumContentLen = (1024 * 50)
+maximumContentLen = 1024 * 50
 
 --------------------------------------------------------------------------------
 -- Types
@@ -185,18 +184,19 @@ getHomeR = do
              do h1_ "Casa"
                 p_ (em_ "(Content-Addressable Storage Archive)")
                 p_
-                  (do "Last uploaded blob: "
-                      maybe
-                        "Never"
-                        (\(t, key) -> do
-                           strong_ (toHtml (show t))
-                           " "
-                           url <- lift ask
-                           a_ [href_ (url (MetaR key))] $
-                             code_ (toHtml (toPathPiece key)))
-                        (fmap
-                           (\(E.Value t, E.Value key) -> (t, key))
-                           (listToMaybe dates)))
+                  ( do "Last uploaded blob: "
+                       maybe
+                         "Never"
+                         ( (\(t, key) -> do
+                             strong_ (toHtml (show t))
+                             " "
+                             url <- lift ask
+                             a_ [href_ (url (MetaR key))] $
+                               code_ (toHtml (toPathPiece key)))
+                         . (\(E.Value t, E.Value key) -> (t, key))
+                         )
+                         (listToMaybe dates)
+                  )
                 url <- lift ask
                 p_ (a_ [href_ (url StatsR)] "More statistics")
          })
@@ -314,21 +314,22 @@ postV1PushR = do
   now <- liftIO getCurrentTime
   respondSourceDB
     "application/octet-stream"
-    (blobsFromBody .|
-     awaitForever
-       (\result ->
-          case result of
-            Left err ->
-              invalidArgs [T.pack ("Invalid (len,blob) pair: " ++ show err)]
-            Right (blobKey, blob) ->
-              lift
-                (void
-                   (insertUnique
-                      (Content
-                         { contentCreated = now
-                         , contentKey = blobKey
-                         , contentBlob = blob
-                         })))))
+    ( blobsFromBody .|
+      awaitForever
+        ( \case
+              Left err ->
+                invalidArgs [T.pack ("Invalid (len,blob) pair: " ++ show err)]
+              Right (blobKey, blob) ->
+                lift
+                  (void
+                     (insertUnique
+                        (Content
+                           { contentCreated = now
+                           , contentKey = blobKey
+                           , contentBlob = blob
+                           })))
+        )
+    )
 
 -- | Pull a batch of blobs.
 postV1PullR :: Handler TypedContent
@@ -363,18 +364,19 @@ logAccesses :: NonEmpty BlobKey -> Handler ()
 logAccesses keys = do
   now <- liftIO getCurrentTime
   runDB
-    (void
-       (mapM_
-          (\key ->
-             upsertBy
-               (AccessUnqiueKey key)
-               (AccessLog
-                  { accessLogKey = key
-                  , accessLogCount = 1
-                  , accessLogLastAccess = now
-                  })
-               [AccessLogLastAccess =. now, AccessLogCount +=. 1])
-          keys))
+    ( mapM_
+      ( \key ->
+          upsertBy
+            (AccessUnqiueKey key)
+            (AccessLog
+               { accessLogKey = key
+               , accessLogCount = 1
+               , accessLogLastAccess = now
+               })
+            [AccessLogLastAccess =. now, AccessLogCount +=. 1]
+      )
+      keys
+    )
 
 --------------------------------------------------------------------------------
 -- Input reader

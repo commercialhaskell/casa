@@ -1,6 +1,4 @@
 {-# LANGUAGE DeriveLift #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 -- |
@@ -51,7 +49,7 @@ data PullException
 instance Exception PullException
 
 -- | An exception from blob consuming/sending.
-data PushException
+newtype PushException
   = PushBadHttpStatus Status
   deriving Show
 instance Exception PushException
@@ -199,7 +197,7 @@ blobKeyValueParser lengths = do
   case HM.lookup blobKey lengths of
     Nothing -> fail ("Invalid key: " <> show blobKey)
     Just len -> do
-      blob <- (Atto.take len)
+      blob <- Atto.take len
       if BlobKey (sha256Hash blob) == blobKey
         then pure (blobKey, blob)
         else fail ("Content does not match SHA256 hash: " ++ show blobKey)
