@@ -107,26 +107,28 @@ test-suite casa-existential-test
     , casa-types
     , bytestring
     , async
-    , network
+    , network >= 2.7 && < 3.3
     , wai >= 3.2
     , warp >= 3.3.26
     , yesod
-    , network-bsd
+    , network-bsd >= 2.7 && < 2.9
     , unordered-containers
     , casa-client
     , resource-pool
     , transformers
     , unliftio-core
 
-    -- For stack
-    , stack
+    -- For Stack
+
+    -- We pin to a specific version of Stack (the most recent version released)
+    -- because the library of the stack package exists only to support the
+    -- Stack executable and there are no guarantees over the stability of its
+    -- API.
+    , stack == 3.7.1
     , rio
     , rio-prettyprint
     , Cabal
-    , pantry
+    , pantry >= 0.11.2
     , containers
     , uuid
     , time
-
-  build-depends: network     >= 2.7 && < 3.2
-                 , network-bsd >= 2.7 && < 2.9

@@ -64,6 +64,7 @@ instance Exception PushException
 newtype CasaRepoPrefix =
   CasaRepoPrefix String
   deriving (Show, Lift)
+
 instance FromJSON CasaRepoPrefix where
   parseJSON j = do
     s <- parseJSON j
