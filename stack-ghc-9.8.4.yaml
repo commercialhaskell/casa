@@ -1,0 +1,25 @@
+# This Stack project-level configuration file builds on the one used to build
+# Stack 3.7.1, as the test suite for package casa-server depends on stack-3.7.1.
+snapshot: lts-23.24 # GHC 9.8.4
+
+extra-deps:
+# lts-23.24 provides hpack-0.37.0
+- hpack-0.38.1@rev:0
+# stack-3.7.1 is built against pantry-0.10.1, but that package does not expose
+# everything needed by the test suite for package casa-server:
+- pantry-0.11.2@sha256:bc14e75f512deb22e0d9d645e62eb63b319d1732bfed6509491601215ecbd307,7896
+# lts-23.24 provides persistent-2.14.6.3
+- persistent-2.17.0.0@rev:0
+- stack-3.7.1@sha256:c70495d1e86f9a777372c85f0e8372b1b1ff9f299ac6deefd5e8957b5ecc39c7,26379
+# lts-23.24 provides tls-2.1.1
+- tls-2.1.8@rev:0
+- git: https://github.com/chrisdone/yesod-lucid.git
+  commit: cde88d0736a44163be70044a109798f578151db3
+
+packages:
+- casa-types
+- casa-server
+- casa-client
+
+nix:
+  shell-file: shell.nix

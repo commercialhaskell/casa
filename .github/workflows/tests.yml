@@ -18,17 +18,17 @@ jobs:
       fail-fast: false
       matrix:
         os:
+        - windows-latest
+        - macos-latest # macos-latest provides macOS/AArch64 (M1)
         - ubuntu-latest
         stack-yaml:
-        - stack-ghc-8.10.7.yaml
+        - stack-ghc-9.8.4.yaml # Capable of building stack-3.7.1
         - stack-ghc-9.10.3.yaml
-        - stack-ghc-9.12.2.yaml
         include:
-        # macos-latest provides macOS/AArch64 (M1)
-        - os: macos-latest
-          stack-yaml: stack-ghc-9.10.3.yaml
-        - os: windows-latest
-          stack-yaml: stack-ghc-9.10.3.yaml
+        - os: ubuntu-latest
+          stack-yaml: stack-ghc-8.10.7.yaml
+        - os: ubuntu-latest
+          stack-yaml: stack-ghc-9.12.2.yaml
     steps:
     - name: Clone project
       uses: actions/checkout@v4
@@ -46,28 +46,44 @@ jobs:
            ~\AppData\Roaming\stack
            ~\AppData\Local\Programs\stack
         key: ${{ runner.os }}-${{ runner.arch }}-${{ matrix.stack-yaml }}
-    - name: Build and run tests
+    # macos-latest does not include Haskell tools as at 2025-09-21.
+    - name: Install Stack on macOS
+      if: startsWith(runner.os, 'macOS')
+      run: |
+        set -ex
+        curl -sSL https://get.haskellstack.org/ | sh
+    - name: Build casa-types casa-client
+      shell: bash
+      run: |
+        set -ex
+        stack --stack-yaml ${{ matrix.stack-yaml }} build casa-types casa-client
+    - name: Build casa-server, including maybe test suite
       shell: bash
       run: |
         set -ex
 
         if [[ "${{ matrix.os }}" == "macos-latest" ]]
         then
-          # macos-latest does not include Haskell tools as at 2025-09-21.
-          curl -sSL https://get.haskellstack.org/ | sh
-
           # macos-latest does not include PostgreSQL libraries
           brew update
           brew install libpq
           brew link --force libpq
           echo "PKG_CONFIG_PATH=$(brew --prefix libpq)/lib/pkgconfig" >> $GITHUB_ENV
-          fi
+        fi
 
         if [[ "${{ matrix.os }}" == "windows-latest" ]]
         then
           # The Stack-supplied MSYS2 does not include libraries for use with
           # PostgreSQL by default.
-          stack exec -- pacman -S --needed --noconfirm mingw-w64-x86_64-postgresql
+          stack --stack-yaml ${{ matrix.stack-yaml }} exec -- pacman -S --needed --noconfirm mingw-w64-x86_64-postgresql
         fi
 
-        stack --stack-yaml ${{ matrix.stack-yaml }} build
+        if [[ "${{ matrix.stack-yaml }}" == "stack-ghc-9.8.4.yaml" ]]
+        then
+          # The test suite of package casa-server depends on stack-3.7.1.
+          # Consequently, it can only be built with a Stack project-level
+          # configuration file capable of building package stack-3.7.1.
+          stack --stack-yaml ${{ matrix.stack-yaml }} test casa-server --no-run-tests
+        else
+          stack --stack-yaml ${{ matrix.stack-yaml }} build casa-server
+        fi
