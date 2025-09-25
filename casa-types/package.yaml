@@ -1,0 +1,35 @@
+spec-version: 0.36.0
+
+name: casa-types
+version: 0.0.3
+synopsis: Types for Casa
+description: |
+  Types for Casa (Content-Addressable Storage Archive). See
+  <https://casa.stackage.org/>
+copyright:
+- 2018-2019 FP Complete
+- 2024-2025 Haskell Foundation
+author: Chris Done
+maintainer:
+- Chris Done <chrisdone@fpcomplete.com>
+- Mike Pilgrem <public@pilgrem.com>
+category: Development
+extra-source-files:
+- ChangeLog.md
+
+github: commercialhaskell/casa/casa-types
+
+library:
+  source-dirs: src
+  ghc-options:
+  - -Wall
+  dependencies:
+  - base >= 4.8 && < 5
+  - aeson >= 0.5.0.0
+  - attoparsec >= 0.10.0.0
+  - base16-bytestring >= 1.0.0.0
+  - bytestring >= 0.10.2.0
+  - hashable >= 1.1.2.0
+  - path-pieces >= 0.1.0
+  - persistent >= 1.2.0
+  - text >= 0.11.1.5
