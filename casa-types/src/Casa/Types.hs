@@ -45,26 +45,23 @@ instance ToJSON BlobKey where
 
 instance PathPiece BlobKey where
 
-  fromPathPiece =
-    either (const Nothing) Just .
-    blobKeyHexParser
+  fromPathPiece = either (const Nothing) Just . blobKeyHexParser
 
   toPathPiece = T.decodeUtf8 . Hex.encode . unBlobKey
 
 -- | Parse a blob key in hex format.
 blobKeyHexParser :: Text -> Either String BlobKey
 blobKeyHexParser =
-  Atto.T.parseOnly
-    (fmap
-       BlobKey
-       (do bytes <- Atto.T.take 64
-           case Hex.decode (T.encodeUtf8 bytes) of
-             Right result -> pure result
-             Left _ -> fail "Invalid hex key."))
+  Atto.T.parseOnly $
+    BlobKey <$> do
+      bytes <- Atto.T.take 64
+      case Hex.decode (T.encodeUtf8 bytes) of
+        Right result -> pure result
+        Left _ -> fail "Invalid hex key."
 
 -- | Parse a blob key in binary format.
 blobKeyBinaryParser :: Atto.B.Parser BlobKey
-blobKeyBinaryParser = fmap BlobKey (Atto.B.take 32)
+blobKeyBinaryParser = BlobKey <$> Atto.B.take 32
 
 -- | Yield a t'S.Builder' value corresponding to the given t'BlobKey' value.
 blobKeyToBuilder :: BlobKey -> S.Builder
