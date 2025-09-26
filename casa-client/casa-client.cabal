@@ -10,7 +10,7 @@ synopsis:       Client for Casa
 description:    Client for Casa (Content-Addressable Storage Archive). See
                 <https://casa.stackage.org/>
 category:       Development
-homepage:       https://github.com/commercialhaskell/casa
+homepage:       https://github.com/commercialhaskell/casa#readme
 bug-reports:    https://github.com/commercialhaskell/casa/issues
 author:         Chris Done
 maintainer:     Chris Done <chrisdone@fpcomplete.com>,
