@@ -20,7 +20,7 @@ module Casa.Client
 import           Casa.Types
                    ( BlobKey (..), blobKeyBinaryParser, blobKeyToBuilder )
 import           Control.Monad ( (>=>), unless )
-import           Control.Monad.Catch ( Exception, MonadThrow, throwM )
+import           Control.Monad.Catch ( Exception, MonadThrow (..) )
 import           Control.Monad.IO.Class ( MonadIO )
 import           Control.Monad.IO.Unlift
                    ( MonadUnliftIO, UnliftIO (..), askUnliftIO )
