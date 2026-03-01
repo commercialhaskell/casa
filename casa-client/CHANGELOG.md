@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to the
 [Haskell Package Versioning Policy](https://pvp.haskell.org/).
 
+## 0.0.4 - 2026-03-04
+
+* For SHA256 hashes, depend on package `cryptohash-sha256` rather than
+  `crypton` and `memory` (the latter is unmaintained).
+
 ## 0.0.3 - 2025-09-27
 
 * Drop support for GHC versions before GHC 8.4.
