@@ -17,7 +17,7 @@ packages:
     git: https://github.com/chrisdone/yesod-lucid.git
 snapshots:
 - completed:
-    sha256: e805b257b40c90ebcf7c1c9bde1d62dc11a64b2900bd7c032f85649a61cf3d0c
-    size: 690292
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2025/8/28.yaml
-  original: nightly-2025-08-28
+    sha256: 282588def632a09cefaecd9ebaade9976ddf9b763a096cd420ef773d37e2bf2b
+    size: 724732
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2026/2/27.yaml
+  original: nightly-2026-02-27

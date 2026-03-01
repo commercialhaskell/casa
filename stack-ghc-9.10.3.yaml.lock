@@ -5,6 +5,48 @@
 
 packages:
 - completed:
+    hackage: Cabal-3.16.0.0@sha256:9972c2bd263168a20bd990962a68d4fd024f50c30a00519a6b942e8871d1bd67,14455
+    pantry-tree:
+      sha256: ddc689c4070a034cacd73c39c1df2673ed16e0b38b5ca476fc6ef2aa87b6f40f
+      size: 12139
+  original:
+    hackage: Cabal-3.16.0.0@sha256:9972c2bd263168a20bd990962a68d4fd024f50c30a00519a6b942e8871d1bd67,14455
+- completed:
+    hackage: Cabal-syntax-3.16.0.0@sha256:6a35036763557301876c5b7a448de4f1cb54fe1e223ff6c4c0c1fdd6df635a65,7509
+    pantry-tree:
+      sha256: 4de976261238dd4045dd3addebf6a006d4aff3873ee680bac7af83dcbf068280
+      size: 11238
+  original:
+    hackage: Cabal-syntax-3.16.0.0@sha256:6a35036763557301876c5b7a448de4f1cb54fe1e223ff6c4c0c1fdd6df635a65,7509
+- completed:
+    hackage: hpack-0.39.1@sha256:d7378debd96e805760540e3640aeda3a1ebee1d000dac99726ed55c827c81a94,5229
+    pantry-tree:
+      sha256: 5f7ca06ce0556a87c8a38813bc7caf9725ba6ad6c0c05ab2c3dd002373973b2f
+      size: 3799
+  original:
+    hackage: hpack-0.39.1@sha256:d7378debd96e805760540e3640aeda3a1ebee1d000dac99726ed55c827c81a94,5229
+- completed:
+    hackage: pantry-0.11.2@sha256:bc14e75f512deb22e0d9d645e62eb63b319d1732bfed6509491601215ecbd307,7896
+    pantry-tree:
+      sha256: 56e76aecdbe8f9d13de1360b11e4a68aae5e072b17dfda49a333274079841e99
+      size: 2722
+  original:
+    hackage: pantry-0.11.2@sha256:bc14e75f512deb22e0d9d645e62eb63b319d1732bfed6509491601215ecbd307,7896
+- completed:
+    hackage: persistent-2.18.0.0@sha256:baa3e0959cf10bbd1da462efeb61d4f073d0cc924a149325494ba5ce29bc17a4,7096
+    pantry-tree:
+      sha256: 41480a227b9c2ff72b29a8f6a8fddb4888bc656be052ad58f2fef508378089f3
+      size: 7184
+  original:
+    hackage: persistent-2.18.0.0@sha256:baa3e0959cf10bbd1da462efeb61d4f073d0cc924a149325494ba5ce29bc17a4,7096
+- completed:
+    hackage: stack-3.9.3@sha256:fb4ce0e857e5bc671c06cdc0b5f409f220679aca01c4ccf26032cd8457b63008,26812
+    pantry-tree:
+      sha256: 728882ac50cef3534c395a4164caf1e33f7471dcf67838b9ce3ecab36bb7a128
+      size: 25224
+  original:
+    hackage: stack-3.9.3@sha256:fb4ce0e857e5bc671c06cdc0b5f409f220679aca01c4ccf26032cd8457b63008,26812
+- completed:
     commit: cde88d0736a44163be70044a109798f578151db3
     git: https://github.com/chrisdone/yesod-lucid.git
     name: yesod-lucid
@@ -17,7 +59,7 @@ packages:
     git: https://github.com/chrisdone/yesod-lucid.git
 snapshots:
 - completed:
-    sha256: 0d0bb681dd5be9b930c8fc070d717aae757b9aed176ae6047d87624b46406816
-    size: 726097
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/24/12.yaml
-  original: lts-24.12
+    sha256: 35f75b07f0b69b3c3e69fe8f034f3be26b3236826b569b7bfdfb9c8aaf651552
+    size: 726797
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/24/32.yaml
+  original: lts-24.32

@@ -7,7 +7,9 @@ on:
     - master
   workflow_dispatch:
 
-# As of 2025-09-21, ubuntu-latest and windows-latest come with Stack 3.7.1.
+# As of 2026-03-01:
+# * ubuntu-latest comes with Stack 3.9.3; and
+# * windows-latest comes with Stack 3.9.1.
 # However, macos-latest does not come with Haskell tools.
 
 jobs:
@@ -22,13 +24,14 @@ jobs:
         - macos-latest # macos-latest provides macOS/AArch64 (M1)
         - ubuntu-latest
         stack-yaml:
-        - stack-ghc-9.8.4.yaml # Capable of building stack-3.7.1
-        - stack-ghc-9.10.3.yaml
+        - stack-ghc-9.10.3.yaml # Capable of building stack-3.9.3
         include:
         - os: ubuntu-latest
           stack-yaml: stack-ghc-8.10.7.yaml
         - os: ubuntu-latest
-          stack-yaml: stack-ghc-9.12.2.yaml
+          stack-yaml: stack-ghc-9.12.2.yaml # GHC 9.12.3 is broken
+        - os: ubuntu-latest
+          stack-yaml: stack-ghc-9.14.1.yaml
     steps:
     - name: Clone project
       uses: actions/checkout@v4
@@ -46,12 +49,17 @@ jobs:
            ~\AppData\Roaming\stack
            ~\AppData\Local\Programs\stack
         key: ${{ runner.os }}-${{ runner.arch }}-${{ matrix.stack-yaml }}
-    # macos-latest does not include Haskell tools as at 2025-09-21.
+    # macos-latest does not include Haskell tools as at 2026-03-01.
     - name: Install Stack on macOS
       if: startsWith(runner.os, 'macOS')
       run: |
         set -ex
         curl -sSL https://get.haskellstack.org/ | sh
+    # windows-latest comes with Stack 3.9.1 as at 2026-03-01.
+    - name: Upgrade Stack on Windows
+      if: startsWith(runner.os, 'windows')
+      run: |
+        stack upgrade
     - name: Build casa-types casa-client
       shell: bash
       run: |
@@ -78,11 +86,11 @@ jobs:
           stack --stack-yaml ${{ matrix.stack-yaml }} exec -- pacman -S --needed --noconfirm mingw-w64-x86_64-postgresql
         fi
 
-        if [[ "${{ matrix.stack-yaml }}" == "stack-ghc-9.8.4.yaml" ]]
+        if [[ "${{ matrix.stack-yaml }}" == "stack-ghc-9.10.3.yaml" ]]
         then
-          # The test suite of package casa-server depends on stack-3.7.1.
+          # The test suite of package casa-server depends on stack-3.9.3.
           # Consequently, it can only be built with a Stack project-level
-          # configuration file capable of building package stack-3.7.1.
+          # configuration file capable of building package stack-3.9.3.
           stack --stack-yaml ${{ matrix.stack-yaml }} test casa-server --no-run-tests
         else
           stack --stack-yaml ${{ matrix.stack-yaml }} build casa-server
