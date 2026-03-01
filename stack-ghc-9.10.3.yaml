@@ -1,6 +1,19 @@
-snapshot: lts-24.12 # GHC 9.10.3
+# This Stack project-level configuration file builds on the one used to build
+# Stack 3.9.3, as the test suite for package casa-server depends on stack-3.9.3.
+snapshot: lts-24.32 # GHC 9.10.3
 
 extra-deps:
+# lts-24.32 specifies Cabal-3.12.1.0
+- Cabal-3.16.0.0@sha256:9972c2bd263168a20bd990962a68d4fd024f50c30a00519a6b942e8871d1bd67,14455
+- Cabal-syntax-3.16.0.0@sha256:6a35036763557301876c5b7a448de4f1cb54fe1e223ff6c4c0c1fdd6df635a65,7509
+# lts-24.32 specifies hpack-0.38.3
+- hpack-0.39.1@sha256:d7378debd96e805760540e3640aeda3a1ebee1d000dac99726ed55c827c81a94,5229
+# lts-24.32 specifies pantry-0.10.1
+- pantry-0.11.2@sha256:bc14e75f512deb22e0d9d645e62eb63b319d1732bfed6509491601215ecbd307,7896
+# lts-24.32 specifies persistent-2.17.1.0
+- persistent-2.18.0.0@sha256:baa3e0959cf10bbd1da462efeb61d4f073d0cc924a149325494ba5ce29bc17a4,7096
+# lts-24.32 does not include stack
+- stack-3.9.3@sha256:fb4ce0e857e5bc671c06cdc0b5f409f220679aca01c4ccf26032cd8457b63008,26812
 - git: https://github.com/chrisdone/yesod-lucid.git
   commit: cde88d0736a44163be70044a109798f578151db3
 
