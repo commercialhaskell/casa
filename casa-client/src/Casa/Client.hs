@@ -25,10 +25,9 @@ import           Control.Monad.IO.Class ( MonadIO )
 import           Control.Monad.IO.Unlift
                    ( MonadUnliftIO, UnliftIO (..), askUnliftIO )
 import           Control.Monad.Trans.Resource ( MonadResource )
-import qualified Crypto.Hash as Crypto
+import qualified Crypto.Hash.SHA256 as SHA256
 import           Data.Aeson ( FromJSON (..) )
 import qualified Data.Attoparsec.ByteString as Atto
-import qualified Data.ByteArray as Mem
 import           Data.ByteString ( ByteString )
 import qualified Data.ByteString as S
 import qualified Data.ByteString.Builder as SB
@@ -219,4 +218,4 @@ blobKeyValueParser lengths = do
 
 -- | Hash some raw bytes.
 sha256Hash :: ByteString -> ByteString
-sha256Hash = Mem.convert . Crypto.hashWith Crypto.SHA256
+sha256Hash = SHA256.hash
